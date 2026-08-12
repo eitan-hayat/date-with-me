@@ -227,8 +227,8 @@
           st.x = 0;
           // Faces sit above centre in most photos, so start there.
           st.y = Math.min(0, -(probe.naturalHeight * st.k - RING) * 0.18);
-          // Built here rather than in the markup: an <img> with no src
-          // ships as a broken-image box.
+          // Built here rather than in the markup, because an image element
+          // with no source yet ships as a broken-image box.
           if (!st.el) {
             st.el = document.createElement('img');
             st.el.alt = '';
