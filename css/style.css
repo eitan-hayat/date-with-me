@@ -460,6 +460,19 @@ h2 {
   .envelope { animation: none; }
 }
 
+/* ---------- the drawn picture ---------- */
+
+.scene {
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--sh-lg);
+  border: 1px solid var(--line);
+  line-height: 0;
+}
+
+.scene svg { width: 100%; height: auto; display: block; }
+
 /* ---------- instagram ---------- */
 
 .ig-row {

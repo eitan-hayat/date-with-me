@@ -212,7 +212,9 @@ VIEWS.celebrate = function () {
   const photo = cfg.photoHer || cfg.photoUs;
   stageEl().innerHTML = `
     <div class="party">
-      ${photo ? `<div class="polaroid pop pop-1"><img src="${esc(photo)}" alt=""><div class="cap">she said yes</div></div>` : ''}
+      ${photo
+        ? `<div class="polaroid pop pop-1"><img src="${esc(photo)}" alt=""><div class="cap">she said yes</div></div>`
+        : sceneCard('pop pop-1')}
       <div class="big-emoji pop pop-1">🎉</div>
       <div class="eyebrow pop pop-2" style="margin-bottom:10px">Answer recorded</div>
       <h1 class="pop pop-2" style="font-size:clamp(38px,12vw,58px)">I knew it.</h1>
@@ -514,7 +516,9 @@ VIEWS.party = function () {
         <div class="party-line pop pop-4">${esc(summaryTitle())}</div>
         <div class="party-line pop pop-5">${esc(state.spot || cityFallback())}</div>
       </div>
-      ${photo ? `<div class="polaroid pop pop-5" style="transform:rotate(2.5deg);margin-top:26px"><img src="${esc(photo)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>` : ''}
+      ${sceneCard('pop pop-5')}
+      <button class="btn ghost" id="saveScene" style="margin-bottom:20px">Save the picture</button>
+      ${photo ? `<div class="polaroid pop pop-6" style="transform:rotate(2.5deg);margin-bottom:22px"><img src="${esc(photo)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>` : ''}
       <p class="sub pop pop-6" style="margin:26px auto 26px">
         ${esc(cfg.to)} said yes to ${esc(cfg.from)}, picked the plan, and put it in the diary.
         There is no undo button. There was never even a no button.
@@ -524,6 +528,8 @@ VIEWS.party = function () {
     </div>`;
 
   el('go').addEventListener('click', next);
+  el('saveScene').addEventListener('click', () =>
+    downloadScene(sceneMarkup(), `${cfg.from}-and-${cfg.to}-${REF}.png`));
   celebrate(6);
 };
 
@@ -580,6 +586,9 @@ VIEWS.ticket = function () {
       </div>
     </div>
 
+    ${cfg.photoUs
+      ? `<div class="polaroid" style="transform:rotate(2deg);margin-bottom:22px"><img src="${esc(cfg.photoUs)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>`
+      : sceneCard()}
     <button class="btn primary" id="tellHim">Send it to ${esc(cfg.from)}</button>
     <div class="btn-row">
       <button class="btn ghost" id="ics">Add to calendar</button>
@@ -638,6 +647,24 @@ VIEWS.receipt = function () {
     render();
   });
 };
+
+/* ---------------- the picture ---------------- */
+
+/* Always available, because it is drawn rather than fetched. */
+function sceneMarkup() {
+  return dateScene({
+    from: cfg.from,
+    to: cfg.to,
+    activity: state.activity,
+    answers: state.answers,
+    time: state.time,
+    dateStr: state.date ? fmtLong(state.date) : '',
+  });
+}
+
+function sceneCard(cls) {
+  return `<div class="scene ${cls || ''}">${sceneMarkup()}</div>`;
+}
 
 /* ---------------- instagram ---------------- */
 

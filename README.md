@@ -30,7 +30,7 @@ their own configuration and nothing is stored anywhere.
 | Time | If she asked for sunset or golden hour anywhere, this question rebuilds itself around the real sunset for the day and city she picked, offering the half hours either side of it. Otherwise it's the standard slots. |
 | Fine print | Joke terms. The last one is pre-checked and cannot be unchecked. |
 | Confirming | "Checking his availability… He's free. He was always free." |
-| **It's official** | The big one. Sustained confetti, the booking spelled out line by line, both Instagram handles. |
+| **It's official** | The big one. Sustained confetti, the booking spelled out line by line, both Instagram handles, and a drawn picture of the two of you on the date she just planned, which she can save to her phone. |
 | Her details | Phone and email, asked only once the date is already booked. |
 | Ticket | A boarding-pass style confirmation, `.ics` download, Google Calendar link, and a live countdown. |
 | Receipt | "Attempts to say no: 24. Successful escapes: 0." |
@@ -50,6 +50,7 @@ index.html      the invitation
 setup.html      your config page — builds the link
 css/style.css   all styling
 js/data.js      activities, follow-up questions, recommendations
+js/scene.js     draws the picture: skies, backdrops, the couple
 js/config.js    reads and writes the config packed into the URL
 js/app.js       the flow engine, the calendar, the .ics export, the runaway button
 ```
@@ -74,3 +75,20 @@ list simply gets the plain time slots. Better no number than a wrong one.
 Instagram handles render as links only. Pulling someone's profile picture needs
 an approved Instagram API app, so real photos come from the two image URL fields
 instead.
+
+## The picture
+
+There is no image model behind a static page, so the celebration picture is
+drawn rather than fetched. `js/scene.js` composes an SVG postcard from her
+answers: the sky comes from the hour (`day`, `golden`, `night`, and sunset
+always wins), the backdrop from the activity (sea, skyline, hills, Roman
+arches, a pool, shopfronts, a cinema screen, a lamp-lit room), and the props
+from the details (bikes, a bistro table with two glasses, shopping bags, a pot
+on the stove). Two silhouettes stand on the right third holding hands, in two
+tones so they read as two people rather than one dark slab.
+
+It costs nothing, needs no network, renders instantly, and there is no case
+where it fails to appear. If you set photo URLs those take priority on the
+celebration and the ticket, and the drawing still leads the "it's official"
+screen. **Save the picture** rasterises it to a 2x PNG, falling back to the SVG
+if the canvas route is blocked.
