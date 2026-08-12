@@ -239,12 +239,6 @@ h2 {
   touch-action: none;
 }
 
-#noBtn.absorbed {
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(0, -78px) scale(0.2) !important;
-}
-
 .taunt {
   position: absolute;
   left: 50%;
