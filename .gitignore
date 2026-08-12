@@ -1,0 +1,5 @@
+.DS_Store
+
+# Impeccable: share the config, keep the machine-local bits out.
+.impeccable/hook.cache.json
+.impeccable/config.local.json
