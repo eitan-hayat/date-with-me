@@ -101,7 +101,7 @@
           </div>
         </div>
         <div class="cropper hide" id="cropMe">
-          <div class="crop-stage" id="stageMe"><img alt="" id="imgMe"><div class="crop-ring"></div></div>
+          <div class="crop-stage" id="stageMe"><div class="crop-ring"></div></div>
           <input type="range" class="crop-zoom" id="zoomMe" min="1" max="3.2" step="0.01" value="1" aria-label="Zoom">
           <button class="btn primary" id="okMe">Use this face</button>
         </div>
@@ -118,7 +118,7 @@
           </div>
         </div>
         <div class="cropper hide" id="cropHer">
-          <div class="crop-stage" id="stageHer"><img alt="" id="imgHer"><div class="crop-ring"></div></div>
+          <div class="crop-stage" id="stageHer"><div class="crop-ring"></div></div>
           <input type="range" class="crop-zoom" id="zoomHer" min="1" max="3.2" step="0.01" value="1" aria-label="Zoom">
           <button class="btn primary" id="okHer">Use this face</button>
         </div>
@@ -201,19 +201,20 @@
     const STAGE = 240, RING = 196, OUT = 168;
 
     function makeCropper(key, ids) {
-      const st = { img: null, k: 1, zoom: 1, x: 0, y: 0 };
-      const stage = el(ids.stage), img = el(ids.img);
+      const st = { img: null, el: null, k: 1, zoom: 1, x: 0, y: 0 };
+      const stage = el(ids.stage);
 
       const clampAndDraw = () => {
+        if (!st.img || !st.el) return;
         const w = st.img.naturalWidth * st.k * st.zoom;
         const h = st.img.naturalHeight * st.k * st.zoom;
         const mx = Math.max(0, (w - RING) / 2);
         const my = Math.max(0, (h - RING) / 2);
         st.x = Math.max(-mx, Math.min(mx, st.x));
         st.y = Math.max(-my, Math.min(my, st.y));
-        img.style.width = w + 'px';
-        img.style.height = h + 'px';
-        img.style.transform = `translate(calc(-50% + ${st.x}px), calc(-50% + ${st.y}px))`;
+        st.el.style.width = w + 'px';
+        st.el.style.height = h + 'px';
+        st.el.style.transform = `translate(calc(-50% + ${st.x}px), calc(-50% + ${st.y}px))`;
       };
 
       const open = (src) => {
@@ -226,7 +227,14 @@
           st.x = 0;
           // Faces sit above centre in most photos, so start there.
           st.y = Math.min(0, -(probe.naturalHeight * st.k - RING) * 0.18);
-          img.src = src;
+          // Built here rather than in the markup: an <img> with no src
+          // ships as a broken-image box.
+          if (!st.el) {
+            st.el = document.createElement('img');
+            st.el.alt = '';
+            stage.insertBefore(st.el, stage.firstChild);
+          }
+          st.el.src = src;
           el(ids.zoom).value = 1;
           el(ids.crop).classList.remove('hide');
           clampAndDraw();
@@ -295,6 +303,7 @@
       el(ids.clear).addEventListener('click', () => {
         faces[key] = '';
         el(ids.file).value = '';
+        if (st.el) { st.el.remove(); st.el = null; st.img = null; }
         el(ids.prev).innerHTML = '🙂';
         el(ids.clear).classList.add('hide');
         el(ids.crop).classList.add('hide');
@@ -304,12 +313,12 @@
     }
 
     makeCropper('faceMe', {
-      file: 'fileMe', stage: 'stageMe', img: 'imgMe', zoom: 'zoomMe', ok: 'okMe',
+      file: 'fileMe', stage: 'stageMe', zoom: 'zoomMe', ok: 'okMe',
       crop: 'cropMe', prev: 'prevMe', clear: 'clearMe', note: 'noteMe',
       fallback: 'Becomes the figure on the left.',
     });
     makeCropper('faceHer', {
-      file: 'fileHer', stage: 'stageHer', img: 'imgHer', zoom: 'zoomHer', ok: 'okHer',
+      file: 'fileHer', stage: 'stageHer', zoom: 'zoomHer', ok: 'okHer',
       crop: 'cropHer', prev: 'prevHer', clear: 'clearHer', note: 'noteHer',
       fallback: 'Becomes the figure on the right.',
     });
