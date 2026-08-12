@@ -60,8 +60,8 @@ function rebuildQueue() {
 
 function setProgress() {
   const shown = state.stage > 0 && currentId() !== 'receipt';
-  const pct = shown ? ((state.stage) / (state.queue.length - 1)) * 100 : 0;
-  el('bar').style.width = pct + '%';
+  const pct = shown ? state.stage / (state.queue.length - 1) : 0;
+  el('bar').style.transform = `scaleX(${pct})`;
   el('step').textContent = shown
     ? `Step ${state.stage} of ${state.queue.length - 1}`
     : '';

@@ -95,10 +95,12 @@ body {
 .progress span {
   display: block;
   height: 100%;
-  width: 0;
+  width: 100%;
   border-radius: 3px;
   background: linear-gradient(90deg, var(--accent), var(--blush));
-  transition: width 0.55s cubic-bezier(0.4, 1.2, 0.4, 1);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stage {
@@ -821,15 +823,14 @@ h2 {
 }
 
 .callout {
-  background: var(--card);
+  background: var(--bg-warm);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--sage);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 16px 18px;
   font-size: 14px;
+  line-height: 1.55;
   color: var(--ink-soft);
-  margin-bottom: 24px;
-  box-shadow: var(--sh-sm);
+  margin-bottom: 26px;
 }
 
 .callout b { color: var(--ink); }
