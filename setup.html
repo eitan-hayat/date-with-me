@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#100d12">
+  <title>Set up your invitation</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <span>Reservation system · admin</span>
+      <span class="ref">Private</span>
+    </div>
+
+    <section class="stage" style="justify-content:flex-start;padding-top:8px">
+      <div class="eyebrow">Setup</div>
+      <h1>Build your link.</h1>
+      <p class="sub">Fill this in, copy the link at the bottom, send it. Everything lives inside the
+        link itself — there is no server and nothing is saved anywhere.</p>
+
+      <div class="setup-section" style="border:none;margin-top:0;padding-top:0">
+        <h3>Who</h3>
+        <div class="field">
+          <label>Your name</label>
+          <input id="from" placeholder="Eitan">
+        </div>
+        <div class="field">
+          <label>Her name</label>
+          <input id="to" placeholder="Or">
+        </div>
+        <div class="field">
+          <label>Your WhatsApp number — where her answers get sent</label>
+          <input id="phone" type="tel" inputmode="tel" placeholder="+972 5x xxx xxxx">
+          <div class="hint">Include the country code. Leave empty and she'll pick the chat herself.</div>
+        </div>
+        <div class="field">
+          <label>City — used for the recommendations</label>
+          <input id="city" placeholder="Tel Aviv">
+          <div class="hint">Tel Aviv gets hand-picked places. Anywhere else gets live Maps searches.</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h3>Options she can choose from</h3>
+        <div class="toggle-row" id="acts"></div>
+      </div>
+
+      <div class="setup-section">
+        <h3>Days you can't do</h3>
+        <p class="tiny" style="margin:-8px 0 14px">These get greyed out in her calendar.</p>
+        <div class="toggle-row" id="days"></div>
+        <div class="field" style="margin-top:16px">
+          <label>How far ahead she can book (days)</label>
+          <input id="horizon" type="number" min="7" max="365" value="60">
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h3>Photos &amp; a personal line</h3>
+        <div class="field">
+          <label>Photo for the "she said yes" moment</label>
+          <input id="photoHer" placeholder="https://…">
+          <div class="hint">Any public image URL. Square-ish looks best.</div>
+        </div>
+        <div class="field">
+          <label>Photo of the two of you — shown on the ticket</label>
+          <input id="photoUs" placeholder="https://…">
+        </div>
+        <div class="field">
+          <label>A line printed on the ticket</label>
+          <input id="note" placeholder="I'll pick you up. Wear the green one.">
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h3>Your link</h3>
+        <div class="out" id="link">—</div>
+        <button class="btn primary" id="copy">Copy link</button>
+        <div class="btn-row">
+          <a class="btn ghost" id="preview" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Preview it</a>
+          <a class="btn ghost" id="wa" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Send on WhatsApp</a>
+        </div>
+        <p class="tiny" style="margin-top:16px">
+          Tip: open the preview on your phone first. The "no" button behaves differently on touch.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    const el = (id) => document.getElementById(id);
+    const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const picked = new Set(ACTIVITIES.map((a) => a.id));
+    const blocked = new Set();
+
+    el('acts').innerHTML = ACTIVITIES.map((a) =>
+      `<button class="toggle on" data-id="${a.id}">${a.emoji} ${a.label}</button>`).join('');
+    el('days').innerHTML = DAY_NAMES.map((d, i) =>
+      `<button class="toggle" data-day="${i}">${d}</button>`).join('');
+
+    el('acts').addEventListener('click', (e) => {
+      const b = e.target.closest('.toggle');
+      if (!b) return;
+      const id = b.dataset.id;
+      if (picked.has(id) && picked.size > 1) picked.delete(id);
+      else picked.add(id);
+      b.classList.toggle('on', picked.has(id));
+      build();
+    });
+
+    el('days').addEventListener('click', (e) => {
+      const b = e.target.closest('.toggle');
+      if (!b) return;
+      const d = +b.dataset.day;
+      blocked.has(d) ? blocked.delete(d) : blocked.add(d);
+      b.classList.toggle('on', blocked.has(d));
+      build();
+    });
+
+    function build() {
+      const cfg = {
+        ...DEFAULT_CONFIG,
+        from: el('from').value.trim() || 'Eitan',
+        to: el('to').value.trim() || 'Or',
+        phone: el('phone').value.trim(),
+        city: el('city').value.trim() || 'Tel Aviv',
+        photoHer: el('photoHer').value.trim(),
+        photoUs: el('photoUs').value.trim(),
+        note: el('note').value.trim(),
+        activities: ACTIVITIES.map((a) => a.id).filter((id) => picked.has(id)),
+        blockedDays: [...blocked].sort(),
+        horizon: Math.min(365, Math.max(7, +el('horizon').value || 60)),
+      };
+
+      const base = location.href.replace(/setup\.html.*$/, 'index.html');
+      const url = base + '#c=' + encodeConfig(cfg);
+      el('link').textContent = url;
+      el('preview').href = url;
+
+      const msg = `${cfg.to} — you have one unopened invitation 💌\n${url}`;
+      el('wa').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+      return url;
+    }
+
+    ['from', 'to', 'phone', 'city', 'photoHer', 'photoUs', 'note', 'horizon']
+      .forEach((id) => el(id).addEventListener('input', build));
+
+    el('copy').addEventListener('click', async () => {
+      const url = build();
+      try {
+        await navigator.clipboard.writeText(url);
+        el('copy').textContent = 'Copied ✓';
+      } catch (e) {
+        const r = document.createRange();
+        r.selectNodeContents(el('link'));
+        getSelection().removeAllRanges();
+        getSelection().addRange(r);
+        el('copy').textContent = 'Select it and copy manually';
+      }
+      setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2200);
+    });
+
+    build();
+  </script>
+</body>
+</html>
