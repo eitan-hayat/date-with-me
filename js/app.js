@@ -3,7 +3,7 @@
    ============================================================ */
 
 /* There is only one link to remember. Land here without an invitation
-   packed into the URL and you get the setup page instead — which is what
+   packed into the URL and you get the setup page instead, which is what
    you want, because a link with no config isn't an invitation to anyone.
    `?demo` skips this, for looking at it without building one first. */
 if (!/[#&]c=/.test(location.hash) && !/[?&]demo/.test(location.search)) {
@@ -11,13 +11,18 @@ if (!/[#&]c=/.test(location.hash) && !/[?&]demo/.test(location.search)) {
 }
 
 const cfg = readConfig();
+const OTHER = '__other';
+
+const BASE_QUEUE = ['envelope', 'ask', 'celebrate', 'activity', '__flow__', 'recs',
+                    'dress', 'date', 'time', 'terms', 'confirming', 'party',
+                    'contact', 'ticket', 'receipt'];
 
 const state = {
   stage: 0,
-  queue: ['envelope', 'ask', 'celebrate', 'activity', '__flow__', 'recs',
-          'dress', 'date', 'time', 'contact', 'terms', 'confirming', 'ticket', 'receipt'],
+  queue: BASE_QUEUE.slice(),
   activity: null,
   answers: {},       // follow-up answers, keyed by step id
+  other: {},         // free text she typed, keyed by question
   spot: null,        // chosen recommendation
   dress: null,
   date: null,        // Date at local midnight
@@ -51,20 +56,23 @@ function back() {
 
 function rebuildQueue() {
   const flow = FLOWS[state.activity] || [];
-  const base = ['envelope', 'ask', 'celebrate', 'activity'];
-  const tail = ['dress', 'date', 'time', 'contact', 'terms', 'confirming', 'ticket', 'receipt'];
   const steps = flow.map((s) => 'f:' + s.id);
   const recs = buildRecs(state.activity, state.answers, cfg.city);
-  state.queue = [...base, ...steps, ...(recs.length ? ['recs'] : []), ...tail];
+  const i = BASE_QUEUE.indexOf('__flow__');
+  state.queue = [
+    ...BASE_QUEUE.slice(0, i),
+    ...steps,
+    ...(recs.length ? [] : ['__norecs__']),
+    ...BASE_QUEUE.slice(i + 1),
+  ].filter((s) => s !== '__norecs__' && !(s === 'recs' && !recs.length));
 }
 
 function setProgress() {
-  const shown = state.stage > 0 && currentId() !== 'receipt';
+  const id = currentId();
+  const shown = state.stage > 0 && id !== 'receipt' && id !== 'party';
   const pct = shown ? state.stage / (state.queue.length - 1) : 0;
   el('bar').style.transform = `scaleX(${pct})`;
-  el('step').textContent = shown
-    ? `Step ${state.stage} of ${state.queue.length - 1}`
-    : '';
+  el('step').textContent = shown ? `Step ${state.stage} of ${state.queue.length - 1}` : '';
 }
 
 function render() {
@@ -81,28 +89,13 @@ function render() {
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
 
-/* ---------------- shared bits ---------------- */
+/* ---------------- question rendering ---------------- */
 
 function head(eyebrow, title, sub) {
   return `
     ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
     <h2>${title}</h2>
     ${sub ? `<p class="sub">${sub}</p>` : ''}`;
-}
-
-function optionGrid(options, selectedId, oneCol) {
-  return `<div class="grid ${oneCol ? 'one' : ''}">${options.map((o) => `
-    <button class="opt ${selectedId === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
-      ${o.emoji ? `<span class="emoji">${o.emoji}</span>` : ''}
-      <span>${esc(o.label)}</span>
-      ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
-    </button>`).join('')}</div>`;
-}
-
-function wireOptions(onPick) {
-  stageEl().querySelectorAll('.opt').forEach((b) => {
-    b.addEventListener('click', () => onPick(b.dataset.id, b));
-  });
 }
 
 function backLink() {
@@ -114,6 +107,68 @@ function backLink() {
 function wireBack() {
   const b = el('backBtn');
   if (b) b.addEventListener('click', back);
+}
+
+/* Every question ends with "Something else", which opens a text box.
+   Whatever she types becomes the answer and prints on the ticket. */
+function askQuestion(opts) {
+  const { key, eyebrow, title, sub, options, selected, onPick } = opts;
+  const placeholder = opts.placeholder || 'Type it here…';
+  const inputType = opts.inputType || 'text';
+  const isOther = selected === OTHER;
+
+  const tiles = [...options, {
+    id: OTHER, emoji: '✏️', label: 'Something else', note: opts.otherNote || 'your idea',
+  }];
+
+  stageEl().innerHTML = `
+    ${head(eyebrow, title, sub)}
+    <div class="grid ${opts.oneCol ? 'one' : ''}">${tiles.map((o) => `
+      <button class="opt ${selected === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
+        ${o.emoji ? `<span class="emoji">${o.emoji}</span>` : ''}
+        <span>${esc(o.label)}</span>
+        ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
+      </button>`).join('')}</div>
+    <div class="other-box ${isOther ? '' : 'hide'}" id="otherBox">
+      <input id="otherInput" type="${inputType}" placeholder="${esc(placeholder)}"
+             value="${esc(state.other[key] || '')}" autocomplete="off">
+      <button class="btn primary" id="otherGo">That's the one</button>
+    </div>
+    ${backLink()}`;
+
+  const box = el('otherBox');
+  const input = el('otherInput');
+
+  const commit = () => {
+    const v = input.value.trim();
+    if (!v) { input.focus(); return; }
+    state.other[key] = v;
+    onPick(OTHER);
+  };
+
+  stageEl().querySelectorAll('.opt').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (b.dataset.id === OTHER) {
+        box.classList.remove('hide');
+        stageEl().querySelectorAll('.opt').forEach((x) => x.classList.remove('selected'));
+        b.classList.add('selected');
+        input.focus();
+        return;
+      }
+      onPick(b.dataset.id);
+    });
+  });
+
+  el('otherGo').addEventListener('click', commit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') commit(); });
+  wireBack();
+}
+
+/* Turn a stored answer back into words for the ticket. */
+function resolveLabel(key, options, value) {
+  if (value === OTHER) return state.other[key] || 'Her idea';
+  const o = (options || []).find((x) => x.id === value);
+  return o ? o.label : '';
 }
 
 /* ---------------- views ---------------- */
@@ -149,42 +204,47 @@ VIEWS.ask = function () {
       <div class="taunt" id="taunt"></div>
     </div>`;
 
-  el('yesBtn').addEventListener('click', () => { burst(); next(); });
+  el('yesBtn').addEventListener('click', () => next());
   setupImpossibleNo();
 };
 
 VIEWS.celebrate = function () {
   const photo = cfg.photoHer || cfg.photoUs;
   stageEl().innerHTML = `
-    <div style="text-align:center">
-      ${photo ? `<div class="polaroid"><img src="${esc(photo)}" alt=""><div class="cap">she said yes</div></div>` : ''}
-      <div class="eyebrow" style="margin-bottom:12px">Answer recorded</div>
-      <h1>I knew it.</h1>
-      <p class="sub" style="margin:0 auto 26px">
+    <div class="party">
+      ${photo ? `<div class="polaroid pop pop-1"><img src="${esc(photo)}" alt=""><div class="cap">she said yes</div></div>` : ''}
+      <div class="big-emoji pop pop-1">🎉</div>
+      <div class="eyebrow pop pop-2" style="margin-bottom:10px">Answer recorded</div>
+      <h1 class="pop pop-2" style="font-size:clamp(38px,12vw,58px)">I knew it.</h1>
+      <p class="sub pop pop-3" style="margin:0 auto 28px">
         ${state.noAttempts > 0
-          ? `You tried the other button ${state.noAttempts} time${state.noAttempts > 1 ? 's' : ''}. That is noted and forgiven.`
+          ? `You went for the other button ${state.noAttempts} time${state.noAttempts > 1 ? 's' : ''}. It was never going to work.`
           : 'No hesitation. Respect.'}
       </p>
-      <button class="btn primary" id="go">Now let's plan it →</button>
+      <button class="btn primary pop pop-4" id="go">Now let's plan it →</button>
     </div>`;
   el('go').addEventListener('click', next);
-  burst();
+  celebrate(3);
 };
 
 VIEWS.activity = function () {
-  const list = ACTIVITIES.filter((a) => cfg.activities.includes(a.id));
-  stageEl().innerHTML = `
-    ${head('Question 02', 'What do you want<br>to do?', 'Pick one. You can change your mind later, unlike with the last question.')}
-    ${optionGrid(list, state.activity)}
-    ${backLink()}`;
-  wireOptions((id) => {
-    state.activity = id;
-    state.answers = {};
-    state.spot = null;
-    rebuildQueue();
-    next();
+  askQuestion({
+    key: 'activity',
+    eyebrow: 'Question 02',
+    title: 'What do you want<br>to do?',
+    sub: 'Pick one. You can change your mind later, unlike with the last question.',
+    options: ACTIVITIES.filter((a) => cfg.activities.includes(a.id)),
+    selected: state.activity,
+    placeholder: 'Whatever you actually want to do…',
+    otherNote: 'you name it',
+    onPick: (id) => {
+      state.activity = id;
+      state.answers = {};
+      state.spot = null;
+      rebuildQueue();
+      next();
+    },
   });
-  wireBack();
 };
 
 function renderFollowUp(stepId) {
@@ -192,20 +252,22 @@ function renderFollowUp(stepId) {
   const step = flow.find((s) => s.id === stepId);
   if (!step) { next(); return; }
 
-  stageEl().innerHTML = `
-    ${head(labelFor(state.activity), step.q, step.sub || '')}
-    ${optionGrid(step.options, state.answers[step.id])}
-    ${backLink()}`;
-
-  wireOptions((id) => {
-    state.answers[step.id] = id;
-    // Recommendations depend on these answers, so recompute the tail.
-    const pos = state.stage;
-    rebuildQueue();
-    state.stage = pos;
-    next();
+  askQuestion({
+    key: 'f:' + step.id,
+    eyebrow: activityLabel(),
+    title: step.q,
+    sub: step.sub || '',
+    options: step.options,
+    selected: state.answers[step.id],
+    onPick: (id) => {
+      state.answers[step.id] = id;
+      // Recommendations depend on these answers, so recompute the tail.
+      const pos = state.stage;
+      rebuildQueue();
+      state.stage = pos;
+      next();
+    },
   });
-  wireBack();
 }
 
 VIEWS.recs = function () {
@@ -219,7 +281,7 @@ VIEWS.recs = function () {
   stageEl().innerHTML = `
     ${head('Suggestions', 'I did some homework.', anyPlace
       ? 'Tap a place to lock it in, or skip it and we improvise. Every card opens in Maps.'
-      : 'Nothing to decide here — just things to look at. Every card opens in Maps.')}
+      : 'Nothing to decide here, just things to look at. Every card opens in Maps.')}
     <div id="recList">${recs.map((r, i) => `
       <div class="rec ${r.place && state.spot === r.name ? 'selected' : ''}" data-i="${i}">
         <div class="rec-main">
@@ -228,6 +290,11 @@ VIEWS.recs = function () {
         </div>
         <a class="maps" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>
       </div>`).join('')}
+    </div>
+    <div class="other-box" style="margin-top:14px">
+      <input id="ownSpot" type="text" placeholder="Somewhere else? Name it…"
+             value="${esc(state.spot && !recs.some((r) => r.name === state.spot) ? state.spot : '')}">
+      <button class="btn primary" id="ownGo">Use this</button>
     </div>
     <button class="btn primary" id="cont" style="margin-top:16px">Continue</button>
     <div class="btn-row">
@@ -245,6 +312,13 @@ VIEWS.recs = function () {
       VIEWS.recs();
     });
   });
+
+  el('ownGo').addEventListener('click', () => {
+    const v = el('ownSpot').value.trim();
+    if (!v) { el('ownSpot').focus(); return; }
+    state.spot = v;
+    next();
+  });
   el('cont').addEventListener('click', next);
   const skip = el('skip');
   if (skip) skip.addEventListener('click', () => { state.spot = null; next(); });
@@ -252,12 +326,15 @@ VIEWS.recs = function () {
 };
 
 VIEWS.dress = function () {
-  stageEl().innerHTML = `
-    ${head('Dress code', 'How are we<br>showing up?')}
-    ${optionGrid(DRESS, state.dress)}
-    ${backLink()}`;
-  wireOptions((id) => { state.dress = id; next(); });
-  wireBack();
+  askQuestion({
+    key: 'dress',
+    eyebrow: 'Dress code',
+    title: 'How are we<br>showing up?',
+    options: DRESS,
+    selected: state.dress,
+    placeholder: 'Describe the outfit…',
+    onPick: (id) => { state.dress = id; next(); },
+  });
 };
 
 VIEWS.date = function () {
@@ -327,37 +404,58 @@ function drawCalendar(today, last) {
   });
 }
 
-VIEWS.time = function () {
-  stageEl().innerHTML = `
-    ${head(fmtLong(state.date), 'And what time?')}
-    ${optionGrid(TIMES, state.time)}
-    ${backLink()}`;
-  wireOptions((id) => { state.time = id; next(); });
-  wireBack();
-};
+/* ---------------- sunset-aware time ---------------- */
 
-VIEWS.contact = function () {
-  stageEl().innerHTML = `
-    ${head('Almost done', 'Where do I send<br>the invite?',
-      'So it lands in your calendar and I stop asking you if you remembered.')}
-    <div class="field">
-      <label>Your phone</label>
-      <input id="ph" type="tel" inputmode="tel" placeholder="05x-xxx-xxxx" value="${esc(state.contact.phone)}">
-    </div>
-    <div class="field">
-      <label>Your email — for the calendar invite</label>
-      <input id="em" type="email" inputmode="email" placeholder="you@email.com" value="${esc(state.contact.email)}">
-      <div class="hint">Optional. Nothing is stored anywhere — it goes straight to ${esc(cfg.from)}.</div>
-    </div>
-    <button class="btn primary" id="cont">Continue</button>
-    ${backLink()}`;
+/* Did she ask for sunset anywhere in her answers? */
+function wantsSunset() {
+  const a = state.answers;
+  return a.vibe === 'sunset' || a.when === 'sunset' || a.when === 'golden';
+}
 
-  el('cont').addEventListener('click', () => {
-    state.contact.phone = el('ph').value.trim();
-    state.contact.email = el('em').value.trim();
-    next();
+function sunsetToday() {
+  const c = coordsFor(cfg.city);
+  if (!c || !state.date) return null;
+  return sunsetFor(state.date, c[0], c[1]);
+}
+
+const hhmm = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+
+/* Four slots around the actual sunset for the day she picked. */
+function sunsetTimes(sunset) {
+  const mins = sunset.getHours() * 60 + sunset.getMinutes();
+  const base = Math.floor(mins / 30) * 30;
+  return [-30, 0, 30, 60].map((off) => {
+    const t = base + off;
+    const id = String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    const d = t - mins;
+    let emoji = '🌇', note;
+    if (d <= -40) { emoji = '☀️'; note = 'early, while it is still bright'; }
+    else if (d <= -10) { emoji = '🌅'; note = 'just before it drops. this one.'; }
+    else if (d <= 10) { emoji = '🌇'; note = 'right as it goes down'; }
+    else if (d <= 40) { emoji = '🌆'; note = 'just after, when the sky goes blue'; }
+    else { emoji = '🌙'; note = 'after dark, straight to dinner'; }
+    return { id, emoji, label: id, note };
   });
-  wireBack();
+}
+
+VIEWS.time = function () {
+  const sunset = wantsSunset() ? sunsetToday() : null;
+  const options = sunset ? sunsetTimes(sunset) : TIMES;
+
+  askQuestion({
+    key: 'time',
+    eyebrow: sunset ? `Sunset is around ${hhmm(sunset)}` : fmtLong(state.date),
+    title: sunset ? 'So what time do<br>we meet?' : 'And what time?',
+    sub: sunset
+      ? `You asked for sunset, so these are built around it. On ${fmtShort(state.date)} the sun goes down at about ${hhmm(sunset)} in ${esc(cfg.city)}.`
+      : '',
+    options,
+    selected: state.time,
+    inputType: 'time',
+    placeholder: 'Pick a time',
+    otherNote: 'a different hour',
+    onPick: (id) => { state.time = id; next(); },
+  });
 };
 
 VIEWS.terms = function () {
@@ -395,11 +493,63 @@ VIEWS.confirming = function () {
     </div>`;
   let i = 0;
   const tick = () => {
+    if (!el('line')) return;
     if (i >= LOADING_LINES.length) { next(); return; }
     el('line').textContent = LOADING_LINES[i++];
     setTimeout(tick, i === LOADING_LINES.length ? 700 : 950);
   };
   tick();
+};
+
+/* The big one. Booking confirmed. */
+VIEWS.party = function () {
+  const photo = cfg.photoUs || cfg.photoHer;
+  stageEl().innerHTML = `
+    <div class="party">
+      <div class="big-emoji pop pop-1">🎊</div>
+      <div class="eyebrow pop pop-1">Booking confirmed · ${esc(REF)}</div>
+      <h1 class="party-title pop pop-2">IT'S<br>OFFICIAL.</h1>
+      <div class="party-lines">
+        <div class="party-line pop pop-3">${esc(fmtLong(state.date))} · ${esc(state.time)}</div>
+        <div class="party-line pop pop-4">${esc(summaryTitle())}</div>
+        <div class="party-line pop pop-5">${esc(state.spot || cityFallback())}</div>
+      </div>
+      ${photo ? `<div class="polaroid pop pop-5" style="transform:rotate(2.5deg);margin-top:26px"><img src="${esc(photo)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>` : ''}
+      <p class="sub pop pop-6" style="margin:26px auto 26px">
+        ${esc(cfg.to)} said yes to ${esc(cfg.from)}, picked the plan, and put it in the diary.
+        There is no undo button. There was never even a no button.
+      </p>
+      ${igRow('pop pop-6')}
+      <button class="btn primary pop pop-7" id="go">One last thing →</button>
+    </div>`;
+
+  el('go').addEventListener('click', next);
+  celebrate(6);
+};
+
+VIEWS.contact = function () {
+  stageEl().innerHTML = `
+    ${head('Almost done', 'Where do I send<br>the invite?',
+      `It's booked. Now I just need somewhere to send it so it lands in your calendar
+       and I stop asking whether you remembered.`)}
+    <div class="field">
+      <label>Your phone</label>
+      <input id="ph" type="tel" inputmode="tel" placeholder="05x-xxx-xxxx" value="${esc(state.contact.phone)}">
+    </div>
+    <div class="field">
+      <label>Your email, for the calendar invite</label>
+      <input id="em" type="email" inputmode="email" placeholder="you@email.com" value="${esc(state.contact.email)}">
+      <div class="hint">Optional. Nothing is stored anywhere, it goes straight to ${esc(cfg.from)}.</div>
+    </div>
+    <button class="btn primary" id="cont">Show me the ticket →</button>
+    ${backLink()}`;
+
+  el('cont').addEventListener('click', () => {
+    state.contact.phone = el('ph').value.trim();
+    state.contact.email = el('em').value.trim();
+    next();
+  });
+  wireBack();
 };
 
 VIEWS.ticket = function () {
@@ -413,6 +563,7 @@ VIEWS.ticket = function () {
         <div class="ticket-brand"><span>Confirmed reservation</span><span>${esc(REF)}</span></div>
         <h2>It's a date.</h2>
         <div class="who">${esc(cfg.from)} &nbsp;+&nbsp; ${esc(cfg.to)}</div>
+        ${igRow('', true)}
         <div class="ticket-rows">
           <div class="trow"><div class="k">Date</div><div class="v">${esc(fmtShort(state.date))}</div></div>
           <div class="trow"><div class="k">Time</div><div class="v">${esc(state.time)}</div></div>
@@ -428,8 +579,6 @@ VIEWS.ticket = function () {
         <div class="ref-no">NO&nbsp;REFUNDS</div>
       </div>
     </div>
-
-    ${cfg.photoUs ? `<div class="polaroid" style="transform:rotate(2deg)"><img src="${esc(cfg.photoUs)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>` : ''}
 
     <button class="btn primary" id="tellHim">Send it to ${esc(cfg.from)}</button>
     <div class="btn-row">
@@ -458,7 +607,6 @@ VIEWS.ticket = function () {
     setTimeout(tickCd, 30000);
   };
   tickCd();
-  burst();
 };
 
 VIEWS.receipt = function () {
@@ -484,26 +632,41 @@ VIEWS.receipt = function () {
   el('againBtn').addEventListener('click', back);
   el('restart').addEventListener('click', () => {
     Object.assign(state, {
-      stage: 0, activity: null, answers: {}, spot: null, dress: null,
-      date: null, time: null, terms: [], noAttempts: 0, calMonth: null,
+      stage: 0, queue: BASE_QUEUE.slice(), activity: null, answers: {}, other: {},
+      spot: null, dress: null, date: null, time: null, terms: [], noAttempts: 0, calMonth: null,
     });
     render();
   });
 };
 
-/* ---------------- the impossible No ---------------- */
+/* ---------------- instagram ---------------- */
+
+function igHandle(raw) {
+  return String(raw || '').trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
+}
+
+function igRow(cls, compact) {
+  const me = igHandle(cfg.igMe);
+  const her = igHandle(cfg.igHer);
+  if (!me && !her) return '';
+  const link = (h) =>
+    `<a class="ig" href="https://instagram.com/${encodeURIComponent(h)}" target="_blank" rel="noopener">@${esc(h)}</a>`;
+  return `<div class="ig-row ${cls || ''} ${compact ? 'compact' : ''}">
+    ${me ? link(me) : ''}${me && her ? '<span class="ig-dot">·</span>' : ''}${her ? link(her) : ''}
+  </div>`;
+}
+
+/* ---------------- the endless No ---------------- */
 
 function setupImpossibleNo() {
   const duel = el('duel');
   const no = el('noBtn');
   const yes = el('yesBtn');
   const taunt = el('taunt');
-  let locked = false;
   let curW = 0;   // tracked by hand — the CSS width transition makes
   let curH = 0;   // getBoundingClientRect() report stale numbers mid-animation.
 
   const dodge = (px, py) => {
-    if (locked) return;
     state.noAttempts++;
     const n = state.noAttempts;
     const box = duel.getBoundingClientRect();
@@ -515,25 +678,18 @@ function setupImpossibleNo() {
       curW = Math.min(r.width, Math.max(130, box.width * 0.42));
     }
 
-    if (n >= NO_LABELS.length) {
-      locked = true;
-      no.classList.add('absorbed');
-      yes.textContent = 'Yes  (the only option)';
-      yes.style.transform = 'scale(1.03)';
-      taunt.textContent = 'the button gave up. so should you.';
-      taunt.classList.add('pop');
-      return;
-    }
-
-    curW = Math.max(84, curW * 0.9);
-    no.textContent = NO_LABELS[n];
+    // It shrinks to a floor and stays there. It never disappears —
+    // she can keep chasing it for as long as she finds it funny.
+    curW = Math.max(92, curW * 0.93);
+    no.textContent = NO_LABELS[n % NO_LABELS.length];
     no.style.width = curW + 'px';
     no.style.padding = '13px 10px';
     no.style.fontSize = Math.max(12, 16 - n) + 'px';
-    // Yes grows — but through height and weight, not width, so it never
-    // pushes past the page gutter.
-    yes.style.fontSize = 19 + n + 'px';
-    yes.style.padding = 19 + n * 2 + 'px 22px';
+
+    // Yes grows through height and weight, not width, so it never
+    // pushes past the page gutter. It stops growing before it gets silly.
+    yes.style.fontSize = Math.min(26, 19 + n) + 'px';
+    yes.style.padding = Math.min(32, 19 + n * 2) + 'px 22px';
     yes.style.transform = `scale(${Math.min(1.03, 1 + n * 0.006)})`;
 
     const btn = { width: curW, height: curH || 50 };
@@ -552,7 +708,7 @@ function setupImpossibleNo() {
     }
 
     no.style.transform = `translate(${best.x}px, ${best.y - 78}px) rotate(${(Math.random() - 0.5) * 16}deg)`;
-    taunt.textContent = TAUNTS[Math.min(n - 1, TAUNTS.length - 1)];
+    taunt.textContent = TAUNTS[(n - 1) % TAUNTS.length];
     taunt.classList.remove('pop');
     void taunt.offsetWidth;
     taunt.classList.add('pop');
@@ -565,7 +721,7 @@ function setupImpossibleNo() {
   // Desktop: run away when the cursor gets close.
   if (setupImpossibleNo.hover) document.removeEventListener('pointermove', setupImpossibleNo.hover);
   setupImpossibleNo.hover = (e) => {
-    if (locked || !document.body.contains(no)) return;
+    if (!document.body.contains(no)) return;
     const b = no.getBoundingClientRect();
     const cx = b.left + b.width / 2;
     const cy = b.top + b.height / 2;
@@ -592,26 +748,22 @@ function setupImpossibleNo() {
 
 /* ---------------- summary helpers ---------------- */
 
-function labelFor(id) {
-  const a = ACTIVITIES.find((x) => x.id === id);
+function activityLabel() {
+  if (state.activity === OTHER) return state.other.activity || 'Her idea';
+  const a = ACTIVITIES.find((x) => x.id === state.activity);
   return a ? a.label : '';
 }
 
-function optLabel(activity, stepId, valueId) {
-  const step = (FLOWS[activity] || []).find((s) => s.id === stepId);
-  const opt = step && step.options.find((o) => o.id === valueId);
-  return opt ? opt.label : '';
-}
-
 function dressLabel() {
-  const d = DRESS.find((x) => x.id === state.dress);
-  return d ? d.label : 'Whatever you want';
+  return resolveLabel('dress', DRESS, state.dress) || 'Whatever you want';
 }
 
 function summaryTitle() {
-  const base = labelFor(state.activity);
-  const parts = Object.keys(state.answers)
-    .map((k) => optLabel(state.activity, k, state.answers[k]))
+  const base = activityLabel();
+  const flow = FLOWS[state.activity] || [];
+  const parts = flow
+    .filter((step) => state.answers[step.id])
+    .map((step) => resolveLabel('f:' + step.id, step.options, state.answers[step.id]))
     .filter(Boolean);
   if (state.activity === 'surprise') return 'A surprise';
   return parts.length ? `${base} — ${parts.join(' · ')}` : base;
@@ -621,6 +773,7 @@ function summaryTitle() {
 function cityFallback() {
   const a = state.answers;
   switch (state.activity) {
+    case 'food':     return a.vibe === 'home' ? 'Home' : cfg.city;
     case 'italy':    return { rome: 'Rome', florence: 'Florence', venice: 'Venice',
                               amalfi: 'Amalfi Coast', milan: 'Milan' }[a.city] || 'Italy';
     case 'cook':     return a.who === 'order' ? 'The sofa' : 'The kitchen';
@@ -636,7 +789,9 @@ function cityFallback() {
 }
 
 function eventTimes() {
-  const [h, mi] = (state.time || '20:00').split(':').map(Number);
+  const m = /(\d{1,2}):(\d{2})/.exec(state.time || '');
+  const h = m ? +m[1] : 20;
+  const mi = m ? +m[2] : 0;
   const start = new Date(state.date);
   start.setHours(h, mi, 0, 0);
   const end = new Date(start.getTime() + 3 * 3600 * 1000);
@@ -651,19 +806,16 @@ function fmtShort(d) {
   return d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
 }
 
-function eventTitle() {
-  return `Date with ${cfg.from} 🌹`;
-}
+function eventTitle() { return `Date with ${cfg.from} 🌹`; }
 
 function eventDetails() {
-  const lines = [
+  return [
     summaryTitle(),
-    state.spot ? `Where: ${state.spot}` : '',
+    state.spot ? `Where: ${state.spot}` : `Where: ${cityFallback()}`,
     `Dress code: ${dressLabel()}`,
-    cfg.note ? cfg.note : '',
+    cfg.note || '',
     `Booking ref ${REF}. No refunds.`,
-  ].filter(Boolean);
-  return lines.join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 /* ---------------- calendar export ---------------- */
@@ -726,7 +878,7 @@ function notifyHim() {
     ``,
     `📅 ${fmtLong(state.date)} at ${state.time}`,
     `🎯 ${summaryTitle()}`,
-    state.spot ? `📍 ${state.spot}` : '',
+    `📍 ${state.spot || cityFallback()}`,
     `👗 ${dressLabel()}`,
     state.contact.phone ? `📱 ${state.contact.phone}` : '',
     state.contact.email ? `✉️ ${state.contact.email}` : '',
@@ -751,38 +903,56 @@ function shake(node) {
   );
 }
 
-function burst() {
+/* A run of bursts from alternating corners, so it actually feels
+   like something happened rather than one polite puff. */
+function celebrate(rounds) {
+  const spots = [
+    [0.5, 0.42], [0.12, 0.3], [0.88, 0.3], [0.5, 0.2], [0.2, 0.55], [0.8, 0.55],
+  ];
+  for (let i = 0; i < rounds; i++) {
+    const s = spots[i % spots.length];
+    setTimeout(() => burst(s[0], s[1], i === 0 ? 110 : 70), i * 320);
+  }
+}
+
+let confettiBits = [];
+let confettiRaf = 0;
+
+function burst(ox, oy, count) {
   const canvas = el('confetti');
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = innerWidth * dpr;
-  canvas.height = innerHeight * dpr;
+  if (canvas.width !== innerWidth * dpr || canvas.height !== innerHeight * dpr) {
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+  }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const colors = ['#c4705a', '#e8b4a0', '#8fa089', '#d9a441', '#f0cbba'];
-  const bits = Array.from({ length: 90 }, () => ({
-    x: innerWidth / 2 + (Math.random() - 0.5) * 120,
-    y: innerHeight * 0.42,
-    vx: (Math.random() - 0.5) * 11,
-    vy: -Math.random() * 13 - 4,
-    r: 3 + Math.random() * 5,
-    rot: Math.random() * Math.PI,
-    vr: (Math.random() - 0.5) * 0.3,
-    c: colors[(Math.random() * colors.length) | 0],
-    life: 1,
-  }));
+  for (let i = 0; i < (count || 90); i++) {
+    confettiBits.push({
+      x: innerWidth * (ox == null ? 0.5 : ox) + (Math.random() - 0.5) * 120,
+      y: innerHeight * (oy == null ? 0.42 : oy),
+      vx: (Math.random() - 0.5) * 12,
+      vy: -Math.random() * 14 - 4,
+      r: 3 + Math.random() * 5,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.3,
+      c: colors[(Math.random() * colors.length) | 0],
+      life: 1,
+    });
+  }
 
-  let raf;
+  if (confettiRaf) return;
   const draw = () => {
     ctx.clearRect(0, 0, innerWidth, innerHeight);
-    let alive = false;
-    bits.forEach((b) => {
+    confettiBits = confettiBits.filter((b) => b.life > 0 && b.y < innerHeight + 40);
+    confettiBits.forEach((b) => {
       b.vy += 0.32;
       b.x += b.vx;
       b.y += b.vy;
       b.rot += b.vr;
-      b.life -= 0.006;
-      if (b.life > 0 && b.y < innerHeight + 40) alive = true;
+      b.life -= 0.005;
       ctx.save();
       ctx.translate(b.x, b.y);
       ctx.rotate(b.rot);
@@ -791,11 +961,14 @@ function burst() {
       ctx.fillRect(-b.r, -b.r * 0.5, b.r * 2, b.r);
       ctx.restore();
     });
-    if (alive) raf = requestAnimationFrame(draw);
-    else ctx.clearRect(0, 0, innerWidth, innerHeight);
+    if (confettiBits.length) {
+      confettiRaf = requestAnimationFrame(draw);
+    } else {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      confettiRaf = 0;
+    }
   };
-  cancelAnimationFrame(raf);
-  draw();
+  confettiRaf = requestAnimationFrame(draw);
 }
 
 /* ---------------- boot ---------------- */

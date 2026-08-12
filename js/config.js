@@ -10,6 +10,8 @@ const DEFAULT_CONFIG = {
   city: 'Tel Aviv',
   photoHer: '',              // optional image URLs
   photoUs: '',
+  igMe: '',                  // instagram handles, shown as links
+  igHer: '',
   activities: ACTIVITIES.map((a) => a.id),
   blockedDays: [],           // weekday indices 0=Sun … 6=Sat that he can't do
   horizon: 60,               // how far ahead the calendar goes, in days

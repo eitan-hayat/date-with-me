@@ -20,17 +20,24 @@ their own configuration and nothing is stored anywhere.
 | Stage | What happens |
 | --- | --- |
 | Envelope | "You have one unopened invitation." |
-| The question | Yes / No. The No button dodges the cursor, teleports on touch, shrinks, and its label degrades — `No` → `Hmm` → `Maybe?` → `Fine` → `Ok yes` — until it gives up and merges into Yes. Every attempt is counted. |
-| Celebration | Confetti, and a photo if you set one. |
+| The question | Yes / No. The No button dodges the cursor, teleports on touch, shrinks to a small pill and keeps running. It never disappears and it can never be caught: the labels cycle (`No` → `Hmm` → `Maybe?` → `So close` → `Never` → back round) and so do the taunts. Every attempt is counted. |
+| Celebration | Confetti from six directions, staggered reveal, and a photo if you set one. |
 | Activity | Food, bikes, a trip, Italy, movie night, pool, a walk, cooking, shopping, surprise me, or nothing at all. |
-| Follow-ups | Branch by activity — cuisine and vibe, which route, which Italian city, who cooks. |
-| Suggestions | Real places for Tel Aviv, live Google Maps searches everywhere else. She can lock one in as the venue. |
+| Follow-ups | Branch by activity. Cuisine and vibe, which route, which Italian city, who cooks. |
+| Suggestions | Real places for Tel Aviv, live Google Maps searches everywhere else, plus a box to type a venue of her own. |
 | Dress code | Casual, nice, fancy, or pyjamas. |
-| Calendar | Your blocked days are greyed out. Then a time slot. |
-| Her details | Phone and email, so you can send the real invite. |
+| Calendar | Your blocked days are greyed out. |
+| Time | If she asked for sunset or golden hour anywhere, this question rebuilds itself around the real sunset for the day and city she picked, offering the half hours either side of it. Otherwise it's the standard slots. |
 | Fine print | Joke terms. The last one is pre-checked and cannot be unchecked. |
+| Confirming | "Checking his availability… He's free. He was always free." |
+| **It's official** | The big one. Sustained confetti, the booking spelled out line by line, both Instagram handles. |
+| Her details | Phone and email, asked only once the date is already booked. |
 | Ticket | A boarding-pass style confirmation, `.ics` download, Google Calendar link, and a live countdown. |
-| Receipt | "Attempts to say no: 7. Successful escapes: 0." |
+| Receipt | "Attempts to say no: 24. Successful escapes: 0." |
+
+Every question also ends with **Something else**, which opens a text box. Whatever
+she types becomes the answer and prints on the ticket, so she is never boxed in
+by the options you chose for her.
 
 Pressing **Send it to Eitan** opens WhatsApp with the whole booking already
 written out — date, plan, venue, dress code, her contact details, and how many
@@ -59,3 +66,11 @@ and the flow engine picks it up automatically.
 
 Hand-picked venues are in `TLV_PICKS`. Any city other than Tel Aviv falls back
 to Google Maps searches built from her answers, so it still works anywhere.
+
+Sunset times are computed locally from the standard solar equations in
+`sunsetFor()`, using the coordinates in `CITY_COORDS`. A city that isn't on that
+list simply gets the plain time slots. Better no number than a wrong one.
+
+Instagram handles render as links only. Pulling someone's profile picture needs
+an approved Instagram API app, so real photos come from the two image URL fields
+instead.

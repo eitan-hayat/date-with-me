@@ -67,6 +67,24 @@
       </div>
 
       <div class="setup-section">
+        <h3>Instagram</h3>
+        <div class="field">
+          <label>Your Instagram</label>
+          <input id="igMe" placeholder="@yourhandle">
+        </div>
+        <div class="field">
+          <label>Her Instagram</label>
+          <input id="igHer" placeholder="@herhandle">
+          <div class="hint">
+            Both appear as tappable handles on the celebration and the ticket.
+            They can't pull your profile pictures in: Instagram blocks that
+            without an approved API app, so for actual photos use the two
+            fields below.
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-section">
         <h3>Photos &amp; a personal line</h3>
         <div class="field">
           <label>Photo for the "she said yes" moment</label>
@@ -140,6 +158,8 @@
         city: el('city').value.trim() || 'Tel Aviv',
         photoHer: el('photoHer').value.trim(),
         photoUs: el('photoUs').value.trim(),
+        igMe: el('igMe').value.trim(),
+        igHer: el('igHer').value.trim(),
         note: el('note').value.trim(),
         activities: ACTIVITIES.map((a) => a.id).filter((id) => picked.has(id)),
         blockedDays: [...blocked].sort(),
@@ -156,7 +176,7 @@
       return url;
     }
 
-    ['from', 'to', 'phone', 'city', 'photoHer', 'photoUs', 'note', 'horizon']
+    ['from', 'to', 'phone', 'city', 'igMe', 'igHer', 'photoHer', 'photoUs', 'note', 'horizon']
       .forEach((id) => el(id).addEventListener('input', build));
 
     el('copy').addEventListener('click', async () => {

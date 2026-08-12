@@ -41,6 +41,7 @@ const FLOWS = {
         { id: 'roof',   emoji: '🌃', label: 'Rooftop' },
         { id: 'hole',   emoji: '🍴', label: 'Tiny place, plastic chairs' },
         { id: 'fancy',  emoji: '✨', label: 'Fancy',        note: "I'm dressing up" },
+        { id: 'home',   emoji: '🏠', label: 'At home',      note: 'I cook, or we order and lie' },
       ],
     },
   ],
@@ -335,6 +336,16 @@ function buildRecs(activity, answers, city) {
     const cuisine = answers.cuisine;
     const vibe = answers.vibe;
 
+    if (vibe === 'home') {
+      const words = {
+        italian: 'italian', sushi: 'sushi', burgers: 'burger', israeli: 'hummus',
+        brunch: 'brunch', steak: 'steak', vegan: 'vegan',
+      }[cuisine] || '';
+      pushIdea(`${words} delivery near us`.trim(), 'The lazy option. The correct option.', `${words} delivery ${city}`);
+      pushWeb(`Cook it ourselves instead`, 'Ambitious. I support it. Loosely.', `easy ${words} recipe`);
+      return out;
+    }
+
     if (vibe === 'sunset' && isTLV) {
       SUNSET_PICKS.forEach((p) => push(p.name, p.note));
     }
@@ -424,6 +435,8 @@ function buildRecs(activity, answers, city) {
 
 /* ---------- the rest of the copy ---------- */
 
+/* Both lists cycle forever. The No button never gives up and neither
+   does she. That's the game. */
 const TAUNTS = [
   'nope.',
   'the button disagrees.',
@@ -432,10 +445,21 @@ const TAUNTS = [
   'you are getting worse at this.',
   'this button is not for you.',
   'seriously?',
-  'okay, last chance —',
+  'okay, last chance,',
+  'no chance.',
+  'it saw you coming.',
+  'faster. no, faster than that.',
+  'impressive persistence. still no.',
+  'the button is enjoying this.',
+  'you could just press the other one.',
+  'we can do this all night.',
+  'this is the longest anyone has tried.',
 ];
 
-const NO_LABELS = ['No', 'No…', 'Hmm', 'Maybe?', 'Probably', 'Fine', 'Ok yes', 'YES'];
+const NO_LABELS = [
+  'No', 'No…', 'Hmm', 'Maybe?', 'Probably', 'Nearly', 'Fine', 'Ok yes',
+  'Catch me', 'Nope', 'Try again', 'Almost', 'So close', 'Nah', 'Never',
+];
 
 const DRESS = [
   { id: 'casual', emoji: '👕', label: 'Casual',  note: 'jeans and good intentions' },
@@ -459,6 +483,51 @@ const TERMS = [
   { text: 'Whoever picked the place cannot complain about the place.', locked: false },
   { text: 'This date is legally binding.', locked: true, note: 'cannot be unchecked' },
 ];
+
+/* Coordinates for the sunset maths. Anywhere not on this list falls back
+   to the plain time list — better no number than a wrong one. */
+const CITY_COORDS = {
+  'tel aviv': [32.0853, 34.7818],
+  'jaffa': [32.0533, 34.7509],
+  'herzliya': [32.1663, 34.8433],
+  'ramat gan': [32.0684, 34.8248],
+  'jerusalem': [31.7683, 35.2137],
+  'haifa': [32.7940, 34.9896],
+  'beer sheva': [31.2518, 34.7913],
+  'eilat': [29.5577, 34.9519],
+  'netanya': [32.3215, 34.8532],
+  'rishon lezion': [31.9730, 34.8066],
+};
+
+function coordsFor(city) {
+  const key = String(city || '').toLowerCase().replace(/[^a-z ]/g, '').trim();
+  if (CITY_COORDS[key]) return CITY_COORDS[key];
+  const hit = Object.keys(CITY_COORDS).find((c) => key.includes(c) || c.includes(key));
+  return hit ? CITY_COORDS[hit] : null;
+}
+
+/* Sunset for a given day and place, via the standard solar equations.
+   Returns a Date, or null above the polar circles where the sun is
+   too stubborn to set. */
+function sunsetFor(date, lat, lon) {
+  const rad = Math.PI / 180;
+  const DAY = 86400000;
+  const n = Math.round((date.getTime() - Date.UTC(2000, 0, 1, 12)) / DAY);
+  const jStar = n - lon / 360;
+  const M = (357.5291 + 0.98560028 * jStar) % 360;
+  const C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad)
+          + 0.0003 * Math.sin(3 * M * rad);
+  const lambda = (M + C + 180 + 102.9372) % 360;
+  const jTransit = 2451545.0 + jStar + 0.0053 * Math.sin(M * rad)
+                 - 0.0069 * Math.sin(2 * lambda * rad);
+  const delta = Math.asin(Math.sin(lambda * rad) * Math.sin(23.44 * rad));
+  const cosOmega = (Math.sin(-0.83 * rad) - Math.sin(lat * rad) * Math.sin(delta))
+                 / (Math.cos(lat * rad) * Math.cos(delta));
+  if (cosOmega < -1 || cosOmega > 1) return null;
+  const omega = Math.acos(cosOmega) / rad;
+  const jSet = jTransit + omega / 360;
+  return new Date((jSet - 2440587.5) * DAY);
+}
 
 const LOADING_LINES = [
   'Checking his availability…',
