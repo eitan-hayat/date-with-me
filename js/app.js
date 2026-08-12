@@ -2,6 +2,14 @@
    The flow engine.
    ============================================================ */
 
+/* There is only one link to remember. Land here without an invitation
+   packed into the URL and you get the setup page instead — which is what
+   you want, because a link with no config isn't an invitation to anyone.
+   `?demo` skips this, for looking at it without building one first. */
+if (!/[#&]c=/.test(location.hash) && !/[?&]demo/.test(location.search)) {
+  location.replace('setup.html');
+}
+
 const cfg = readConfig();
 
 const state = {
@@ -464,7 +472,7 @@ VIEWS.receipt = function () {
 
   stageEl().innerHTML = `
     ${head('Receipt', 'For the record.', 'The system logs everything. Sorry.')}
-    <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 16px;margin-bottom:22px">
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 16px;margin-bottom:22px;box-shadow:var(--sh-sm)">
       ${rows.map(([k, v]) => `<div class="stat"><span>${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('')}
     </div>
     <p class="sub">See you ${esc(fmtShort(state.date))} at ${esc(state.time)}. Don't be late — I will be, but don't be.</p>
@@ -751,7 +759,7 @@ function burst() {
   canvas.height = innerHeight * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const colors = ['#ff6f61', '#ffb199', '#e8b96a', '#6ad3a1', '#f7efe9'];
+  const colors = ['#c4705a', '#e8b4a0', '#8fa089', '#d9a441', '#f0cbba'];
   const bits = Array.from({ length: 90 }, () => ({
     x: innerWidth / 2 + (Math.random() - 0.5) * 120,
     y: innerHeight * 0.42,
