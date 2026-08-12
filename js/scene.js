@@ -67,9 +67,13 @@ const LX = 232;        // sun / moon, left third
 function person(x, h, p, opts) {
   const o = opts || {};
   const ink = o.ink || p.ink;
-  const hr = h * 0.097;                 // head radius
+  const face = o.photo;
+  // A real face has to be big enough to actually recognise. That means
+  // slightly caricature proportions, which is the right trade here:
+  // being recognisably you beats being anatomically correct.
+  const hr = h * (face ? 0.138 : (o.bigHead ? 0.12 : 0.097));
   const cy = FOOT - h + hr;             // head centre
-  const sy = cy + hr * 2.0;             // shoulder line
+  const sy = cy + hr * (face ? 1.6 : 2.0);  // shoulder line
   const sw = h * 0.125;                 // half shoulder
   const ww = h * 0.088;                 // half waist
   const fw = o.skirt ? h * 0.132 : h * 0.076;   // half hem
@@ -81,8 +85,8 @@ function person(x, h, p, opts) {
     C ${x + fw} ${FOOT - h * 0.12}, ${x + ww + 1} ${sy + h * 0.4}, ${x + ww} ${sy + h * 0.26}
     C ${x + sw + 2} ${sy + h * 0.14}, ${x + sw + 4} ${sy + h * 0.04}, ${x + sw - 2} ${sy - 4} Z`;
 
-  // Hair sits a shade darker than the body, so the head still reads
-  // as a head instead of dissolving into the shoulders.
+  // Hair stays even behind a photo: it is what makes her read as her
+  // from across the room.
   const hair = o.hair ? `
     <path d="M ${x - hr - 2} ${cy - 1}
       C ${x - hr - 4} ${cy + hr * 1.5}, ${x - sw + 1} ${sy + h * 0.02}, ${x - sw + 3} ${sy + h * 0.1}
@@ -91,26 +95,45 @@ function person(x, h, p, opts) {
       C ${x + hr + 2} ${cy - hr * 1.75}, ${x - hr - 2} ${cy - hr * 1.75}, ${x - hr - 2} ${cy - 1} Z"
       fill="${p.ink}" opacity="0.92"/>` : '';
 
+  const clip = 'hd' + (++sceneSeq);
+  const head = face
+    ? `<defs><clipPath id="${clip}"><circle cx="${x}" cy="${cy}" r="${hr}"/></clipPath></defs>
+       <circle cx="${x}" cy="${cy}" r="${hr + 2.5}" fill="${ink}"/>
+       <image href="${face}" clip-path="url(#${clip})"
+              x="${x - hr}" y="${cy - hr}" width="${hr * 2}" height="${hr * 2}"
+              preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="${x}" cy="${cy}" r="${hr}" fill="${ink}"/>`;
+
   return `<g>
-    <rect x="${x - hr * 0.4}" y="${cy}" width="${hr * 0.8}" height="${sy - cy + 3}" fill="${ink}"/>
-    <circle cx="${x}" cy="${cy}" r="${hr}" fill="${ink}"/>
+    <rect x="${x - hr * 0.34}" y="${cy}" width="${hr * 0.68}" height="${sy - cy + 3}" fill="${ink}"/>
     ${hair}
+    ${head}
     <path d="${body}" fill="${ink}"/>
   </g>`;
 }
 
 /* Two of them, hands joined across the gap. */
-function couple(p, cx) {
+function couple(p, cx, faces) {
+  const f = faces || {};
+  const hasFace = !!(f.me || f.her);
+  // Step them closer to the camera when they have real faces, so the
+  // faces are big enough to read on a phone.
+  const hMe = hasFace ? 208 : 160;
+  const hHer = hasFace ? 194 : 148;
+  const gap = hasFace ? 46 : 36;
+
   const x = cx == null ? CX : cx;
-  const a = x - 36, b = x + 36;
-  const hy = FOOT - 72;
+  const a = x - gap, b = x + gap;
+  const hy = FOOT - (hasFace ? 92 : 72);
+  const heartBase = FOOT - hMe - (hasFace ? 26 : 40);
+
   return `
-    <ellipse cx="${x}" cy="${FOOT + 2}" rx="80" ry="8" fill="${p.ink}" opacity="0.16"/>
-    ${person(a, 160, p, {})}
-    ${person(b, 148, p, { hair: true, skirt: true, ink: p.ink2 })}
-    <path d="M ${a + 12} ${hy} Q ${x} ${hy + 7} ${b - 11} ${hy - 4}"
-          stroke="${p.ink2}" stroke-width="5" stroke-linecap="round" fill="none"/>
-    ${[[x - 2, FOOT - 196, 1], [x + 34, FOOT - 220, 0.7], [x - 36, FOOT - 232, 0.55]].map(([hx, hy2, s]) => `
+    <ellipse cx="${x}" cy="${FOOT + 2}" rx="${hasFace ? 98 : 80}" ry="9" fill="${p.ink}" opacity="0.16"/>
+    ${person(a, hMe, p, { photo: f.me, bigHead: hasFace })}
+    ${person(b, hHer, p, { hair: true, skirt: true, ink: p.ink2, photo: f.her, bigHead: hasFace })}
+    <path d="M ${a + 15} ${hy} Q ${x} ${hy + 8} ${b - 14} ${hy - 5}"
+          stroke="${p.ink2}" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+    ${[[x - 2, heartBase, 1], [x + 40, heartBase - 26, 0.7], [x - 44, heartBase - 38, 0.55]].map(([hx, hy2, s]) => `
       <path transform="translate(${hx} ${hy2}) scale(${s})"
             d="M 0 9 C -15 -4 -11 -19 0 -13 C 11 -19 15 -4 0 9 Z"
             fill="${p.accent}" opacity="0.9"/>`).join('')}`;
@@ -357,10 +380,7 @@ function dateScene(o) {
 
   let backdrop = '', prop = '', cx = CX;
 
-  /* Photos land bottom-left, so any left-hand prop moves to the other
-     side of the couple rather than hiding behind them. */
-  const shots = (o.photos || []).filter(Boolean).slice(0, 2);
-  const propX = shots.length ? Math.min(W - 76, CX + 122) : 150;
+  const propX = 150;
 
   if (act === 'bowling') {
     backdrop = lanes(p);
@@ -405,24 +425,6 @@ function dateScene(o) {
 
   const line2 = [o.dateStr, o.time].filter(Boolean).join('  ·  ');
 
-  /* Real photos, when he uploaded them, pinned on like polaroids.
-     They arrive as data URIs, so they survive the PNG export intact. */
-  const pinned = shots.map((src, i) => {
-    const k = shots.length > 1 ? 0.84 : 1;
-    const pw = 122 * k, ph = 142 * k;
-    const px = 22 + i * (pw + 12);
-    const py = PIC - ph - 16 - (i ? 8 : 0);
-    const rot = i ? 3.5 : -4.5;
-    return `
-      <g transform="rotate(${rot} ${px + pw / 2} ${py + ph / 2})">
-        <rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="3" fill="#fdf8f3"
-              stroke="rgba(47,42,38,0.16)" stroke-width="1"/>
-        <image href="${src}" x="${px + 7 * k}" y="${py + 7 * k}"
-               width="${pw - 14 * k}" height="${pw - 14 * k}"
-               preserveAspectRatio="xMidYMid slice"/>
-      </g>`;
-  }).join('');
-
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 460" width="${W}" height="460" role="img"
      aria-label="An illustration of ${sEsc(o.from)} and ${sEsc(o.to)} on their date">
@@ -446,9 +448,8 @@ function dateScene(o) {
     ${sun}
     ${(indoors || bigRoom) ? '' : outdoorGround(p)}
     ${backdrop}
-    ${couple(p, cx)}
+    ${couple(p, cx, o.faces)}
     ${prop}
-    ${pinned}
   </g>
 
   <text x="${W / 2}" y="428" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"

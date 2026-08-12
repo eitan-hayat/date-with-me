@@ -86,12 +86,25 @@ tones so they read as two people rather than one dark slab.
 It costs nothing, needs no network, renders instantly, and there is no case
 where it fails to appear.
 
-Photos you upload in setup are pinned onto it as polaroids, and any side prop
-moves to the far side of the couple so nothing ends up hidden behind them.
-**Save the picture** rasterises the whole thing, photos included, to a 2x PNG,
-falling back to the SVG if the canvas route is blocked.
+### Your faces in it
 
-Photos are shrunk to 200px square at JPEG quality 0.6 before they go into the
-link. That is deliberate: the data URI is base64, and the config carrying it is
-base64'd again, so every kilobyte costs about 1.8k characters of link. The setup
-page shows the resulting length and warns when it gets unwieldy.
+Add a photo of each of you in setup and **you become the two people in the
+scene**. The face crop is clipped into a circle and drawn as the figure's head,
+so if she picks cinema night it is the two of you in the cinema, and if she picks
+sunset dinner it is the two of you on the sand. Whoever has no photo stays a
+silhouette. When either face is present both figures step closer to the camera
+and their heads grow, because a face you cannot recognise is pointless: slightly
+caricature proportions are the right trade.
+
+There is no face detection. The APIs that exist are unreliable and absent on
+iOS, and a wrong guess crops somebody's shoulder, so setup gives you a circular
+cropper and you place it yourself with drag and zoom. It renders exactly what
+the circle shows to a 168px square at JPEG quality 0.68.
+
+That size is deliberate: the crop is a base64 data URI, and the config carrying
+it gets base64'd again, so every kilobyte costs roughly 1.8k characters of link.
+The setup page shows the resulting length and warns when it gets unwieldy.
+
+**Save the picture** rasterises the whole thing, faces included, to a 2x PNG.
+Data URIs do not taint a canvas, so the export works; it falls back to the SVG
+if the canvas route is ever blocked.

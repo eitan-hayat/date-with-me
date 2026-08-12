@@ -209,12 +209,9 @@ VIEWS.ask = function () {
 };
 
 VIEWS.celebrate = function () {
-  const photo = cfg.photoHer || cfg.photoUs;
   stageEl().innerHTML = `
     <div class="party">
-      ${photo
-        ? `<div class="polaroid pop pop-1"><img src="${esc(photo)}" alt=""><div class="cap">she said yes</div></div>`
-        : sceneCard('pop pop-1')}
+      ${sceneCard('pop pop-1')}
       <div class="big-emoji pop pop-1">🎉</div>
       <div class="eyebrow pop pop-2" style="margin-bottom:10px">Answer recorded</div>
       <h1 class="pop pop-2" style="font-size:clamp(38px,12vw,58px)">I knew it.</h1>
@@ -653,7 +650,7 @@ function sceneMarkup() {
     answers: state.answers,
     time: state.time,
     dateStr: state.date ? fmtLong(state.date) : '',
-    photos: [cfg.photoUs, cfg.photoHer].filter(Boolean),
+    faces: { me: cfg.faceMe, her: cfg.faceHer },
   });
 }
 

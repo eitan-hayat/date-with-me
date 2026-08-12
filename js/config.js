@@ -8,8 +8,8 @@ const DEFAULT_CONFIG = {
   to: 'Or',
   phone: '',                 // WhatsApp number that gets the answers, digits only
   city: 'Tel Aviv',
-  photoHer: '',              // shrunk data URIs from the setup page
-  photoUs: '',
+  faceMe: '',                // circular face crops, made in setup, ~168px
+  faceHer: '',
   activities: ACTIVITIES.map((a) => a.id),
   blockedDays: [],           // weekday indices 0=Sun … 6=Sat that he can't do
   horizon: 60,               // how far ahead the calendar goes, in days

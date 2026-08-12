@@ -80,35 +80,47 @@
       </div>
 
       <div class="setup-section">
-        <h3>Photos <span class="badge opt">Optional</span></h3>
+        <h3>Your faces <span class="badge opt">Optional</span></h3>
         <p class="instruction">
-          Pick them from your phone. They get shrunk right here in the browser and
-          travel inside the link, so no one else ever sees them. If you add them,
-          they are pinned onto the picture she gets at the end.
+          Add a photo of each of you and <b>you become the two people in the
+          picture she gets at the end</b>. If she picks cinema night, it is the
+          two of you in the cinema. Drag to put the face inside the circle, then
+          pinch or slide to zoom. Photos are cropped here in the browser and
+          travel inside the link: nothing is uploaded anywhere.
         </p>
 
-        <div class="upload" id="upHer">
-          <div class="up-preview" id="prevHer">🙂</div>
+        <div class="upload" id="cardMe">
+          <div class="up-preview round" id="prevMe">🙂</div>
           <div class="up-body">
-            <div class="up-title">A photo of her</div>
-            <div class="up-note" id="noteHer">Shown the moment she says yes.</div>
+            <div class="up-title">You</div>
+            <div class="up-note" id="noteMe">Becomes the figure on the left.</div>
+            <div class="up-actions">
+              <label class="btn ghost up-btn">Choose photo<input type="file" accept="image/*" id="fileMe" hidden></label>
+              <button class="btn ghost up-btn hide" id="clearMe">Remove</button>
+            </div>
+          </div>
+        </div>
+        <div class="cropper hide" id="cropMe">
+          <div class="crop-stage" id="stageMe"><img alt="" id="imgMe"><div class="crop-ring"></div></div>
+          <input type="range" class="crop-zoom" id="zoomMe" min="1" max="3.2" step="0.01" value="1" aria-label="Zoom">
+          <button class="btn primary" id="okMe">Use this face</button>
+        </div>
+
+        <div class="upload" id="cardHer">
+          <div class="up-preview round" id="prevHer">🙂</div>
+          <div class="up-body">
+            <div class="up-title">Her</div>
+            <div class="up-note" id="noteHer">Becomes the figure on the right.</div>
             <div class="up-actions">
               <label class="btn ghost up-btn">Choose photo<input type="file" accept="image/*" id="fileHer" hidden></label>
               <button class="btn ghost up-btn hide" id="clearHer">Remove</button>
             </div>
           </div>
         </div>
-
-        <div class="upload" id="upUs">
-          <div class="up-preview" id="prevUs">👫</div>
-          <div class="up-body">
-            <div class="up-title">A photo of the two of you</div>
-            <div class="up-note" id="noteUs">Pinned to the ticket and the final picture.</div>
-            <div class="up-actions">
-              <label class="btn ghost up-btn">Choose photo<input type="file" accept="image/*" id="fileUs" hidden></label>
-              <button class="btn ghost up-btn hide" id="clearUs">Remove</button>
-            </div>
-          </div>
+        <div class="cropper hide" id="cropHer">
+          <div class="crop-stage" id="stageHer"><img alt="" id="imgHer"><div class="crop-ring"></div></div>
+          <input type="range" class="crop-zoom" id="zoomHer" min="1" max="3.2" step="0.01" value="1" aria-label="Zoom">
+          <button class="btn primary" id="okHer">Use this face</button>
         </div>
       </div>
 
@@ -146,7 +158,7 @@
 
     const dropped = new Set();   // activities taken off her list
     const blocked = new Set();   // weekdays he can't do
-    const photos = { photoHer: '', photoUs: '' };
+    const faces = { faceMe: '', faceHer: '' };
 
     el('acts').innerHTML = ACTIVITIES.map((a) =>
       `<button class="toggle on" data-id="${a.id}">${a.emoji} ${a.label}</button>`).join('');
@@ -182,57 +194,125 @@
       build();
     });
 
-    /* Shrink hard: the photo has to fit inside a URL. */
-    function readPhoto(file, cb) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          // Small on purpose: the photo has to survive being base64'd
-          // into the config and then base64'd again into the link.
-          const max = 200;
-          const side = Math.min(img.width, img.height);      // square crop, centred
-          const canvas = document.createElement('canvas');
-          canvas.width = canvas.height = max;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2,
-                        side, side, 0, 0, max, max);
-          cb(canvas.toDataURL('image/jpeg', 0.6));
-        };
-        img.onerror = () => cb('');
-        img.src = reader.result;
-      };
-      reader.onerror = () => cb('');
-      reader.readAsDataURL(file);
-    }
+    /* ---------- the face cropper ----------
+       No face detection: the ones available in browsers are unreliable and
+       absent on iOS, and a wrong guess crops somebody's shoulder. He places
+       it himself, which always works. */
+    const STAGE = 240, RING = 196, OUT = 168;
 
-    function wireUpload(key, fileId, prevId, clearId, noteId, fallbackNote) {
-      el(fileId).addEventListener('change', (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        el(noteId).textContent = 'Shrinking it…';
-        readPhoto(f, (data) => {
-          if (!data) { el(noteId).textContent = 'Could not read that file.'; return; }
-          photos[key] = data;
-          el(prevId).innerHTML = `<img src="${data}" alt="">`;
-          el(clearId).classList.remove('hide');
-          el(noteId).textContent = Math.round(data.length / 1024) + ' KB after shrinking.';
-          build();
-        });
+    function makeCropper(key, ids) {
+      const st = { img: null, k: 1, zoom: 1, x: 0, y: 0 };
+      const stage = el(ids.stage), img = el(ids.img);
+
+      const clampAndDraw = () => {
+        const w = st.img.naturalWidth * st.k * st.zoom;
+        const h = st.img.naturalHeight * st.k * st.zoom;
+        const mx = Math.max(0, (w - RING) / 2);
+        const my = Math.max(0, (h - RING) / 2);
+        st.x = Math.max(-mx, Math.min(mx, st.x));
+        st.y = Math.max(-my, Math.min(my, st.y));
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
+        img.style.transform = `translate(calc(-50% + ${st.x}px), calc(-50% + ${st.y}px))`;
+      };
+
+      const open = (src) => {
+        const probe = new Image();
+        probe.onload = () => {
+          st.img = probe;
+          // At zoom 1 the shorter side exactly fills the circle.
+          st.k = RING / Math.min(probe.naturalWidth, probe.naturalHeight);
+          st.zoom = 1;
+          st.x = 0;
+          // Faces sit above centre in most photos, so start there.
+          st.y = Math.min(0, -(probe.naturalHeight * st.k - RING) * 0.18);
+          img.src = src;
+          el(ids.zoom).value = 1;
+          el(ids.crop).classList.remove('hide');
+          clampAndDraw();
+        };
+        probe.onerror = () => { el(ids.note).textContent = 'Could not read that file.'; };
+        probe.src = src;
+      };
+
+      let drag = null;
+      stage.addEventListener('pointerdown', (e) => {
+        if (!st.img) return;
+        drag = { px: e.clientX, py: e.clientY, ox: st.x, oy: st.y };
+        stage.setPointerCapture(e.pointerId);
+      });
+      stage.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        st.x = drag.ox + (e.clientX - drag.px);
+        st.y = drag.oy + (e.clientY - drag.py);
+        clampAndDraw();
+      });
+      ['pointerup', 'pointercancel'].forEach((ev) =>
+        stage.addEventListener(ev, () => { drag = null; }));
+
+      el(ids.zoom).addEventListener('input', (e) => {
+        if (!st.img) return;
+        st.zoom = +e.target.value;
+        clampAndDraw();
       });
 
-      el(clearId).addEventListener('click', () => {
-        photos[key] = '';
-        el(fileId).value = '';
-        el(prevId).innerHTML = prevId === 'prevHer' ? '🙂' : '👫';
-        el(clearId).classList.add('hide');
-        el(noteId).textContent = fallbackNote;
+      /* Render exactly what the circle is showing. */
+      const commit = () => {
+        if (!st.img) return;
+        const scale = OUT / RING;
+        const w = st.img.naturalWidth * st.k * st.zoom;
+        const h = st.img.naturalHeight * st.k * st.zoom;
+        const ix = STAGE / 2 + st.x - w / 2 - (STAGE - RING) / 2;
+        const iy = STAGE / 2 + st.y - h / 2 - (STAGE - RING) / 2;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = OUT;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f5ede4';
+        ctx.fillRect(0, 0, OUT, OUT);
+        ctx.drawImage(st.img, ix * scale, iy * scale, w * scale, h * scale);
+
+        const data = canvas.toDataURL('image/jpeg', 0.68);
+        faces[key] = data;
+        el(ids.prev).innerHTML = `<img src="${data}" alt="">`;
+        el(ids.clear).classList.remove('hide');
+        el(ids.note).textContent = Math.round(data.length / 1024) + ' KB. In the picture now.';
+        el(ids.crop).classList.add('hide');
+        build();
+      };
+
+      el(ids.ok).addEventListener('click', commit);
+
+      el(ids.file).addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => open(reader.result);
+        reader.onerror = () => { el(ids.note).textContent = 'Could not read that file.'; };
+        reader.readAsDataURL(f);
+      });
+
+      el(ids.clear).addEventListener('click', () => {
+        faces[key] = '';
+        el(ids.file).value = '';
+        el(ids.prev).innerHTML = '🙂';
+        el(ids.clear).classList.add('hide');
+        el(ids.crop).classList.add('hide');
+        el(ids.note).textContent = ids.fallback;
         build();
       });
     }
 
-    wireUpload('photoHer', 'fileHer', 'prevHer', 'clearHer', 'noteHer', 'Shown the moment she says yes.');
-    wireUpload('photoUs', 'fileUs', 'prevUs', 'clearUs', 'noteUs', 'Pinned to the ticket and the final picture.');
+    makeCropper('faceMe', {
+      file: 'fileMe', stage: 'stageMe', img: 'imgMe', zoom: 'zoomMe', ok: 'okMe',
+      crop: 'cropMe', prev: 'prevMe', clear: 'clearMe', note: 'noteMe',
+      fallback: 'Becomes the figure on the left.',
+    });
+    makeCropper('faceHer', {
+      file: 'fileHer', stage: 'stageHer', img: 'imgHer', zoom: 'zoomHer', ok: 'okHer',
+      crop: 'cropHer', prev: 'prevHer', clear: 'clearHer', note: 'noteHer',
+      fallback: 'Becomes the figure on the right.',
+    });
 
     function build() {
       const keep = ACTIVITIES.map((a) => a.id).filter((id) => !dropped.has(id));
@@ -243,8 +323,8 @@
         to: el('to').value.trim() || 'Or',
         phone: el('phone').value.trim(),
         city: el('city').value.trim() || 'Tel Aviv',
-        photoHer: photos.photoHer,
-        photoUs: photos.photoUs,
+        faceMe: faces.faceMe,
+        faceHer: faces.faceHer,
         note: el('note').value.trim(),
         activities: keep,
         blockedDays: [...blocked].sort(),
