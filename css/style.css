@@ -473,32 +473,6 @@ h2 {
 
 .scene svg { width: 100%; height: auto; display: block; }
 
-/* ---------- instagram ---------- */
-
-.ig-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 22px;
-}
-
-.ig-row.compact { justify-content: flex-start; margin: -12px 0 20px; }
-
-.ig-row .ig {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  text-decoration: none;
-  border: 1px solid rgba(196, 112, 90, 0.28);
-  background: #fdf1ec;
-  border-radius: 999px;
-  padding: 6px 12px;
-}
-
-.ig-row .ig-dot { color: var(--faint); }
-
 /* ---------- recommendation cards ---------- */
 
 .rec {
@@ -928,6 +902,113 @@ h2 {
   color: var(--ink);
   font-weight: 600;
 }
+
+/* Removed from her list: unmistakably struck out. */
+.toggle.off {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--faint);
+  text-decoration: line-through;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* ---------- setup: required vs optional ---------- */
+
+.badge {
+  display: inline-block;
+  vertical-align: 2px;
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-weight: 500;
+}
+
+.badge.req { background: #fdf1ec; color: var(--accent-dk); border: 1px solid rgba(196,112,90,0.3); }
+.badge.opt { background: var(--bg-warm); color: var(--muted); border: 1px solid var(--line); }
+
+.instruction {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  background: var(--bg-warm);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin: -6px 0 16px;
+}
+
+.instruction b { color: var(--ink); }
+
+/* ---------- setup: photo uploads ---------- */
+
+.upload {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--sh-sm);
+}
+
+.up-preview {
+  width: 74px;
+  height: 74px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--bg-warm);
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  overflow: hidden;
+}
+
+.up-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.up-body { flex: 1; min-width: 0; }
+.up-title { font-weight: 600; font-size: 15px; }
+.up-note { font-size: 12.5px; color: var(--muted); margin: 3px 0 10px; }
+.up-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.up-btn {
+  width: auto;
+  padding: 9px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.hide { display: none !important; }
+
+/* ---------- setup: link length ---------- */
+
+.meter {
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(47, 42, 38, 0.08);
+  overflow: hidden;
+  margin: 0 0 8px;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--sage), var(--gold), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tiny.warn { color: var(--accent-dk); }
 
 .out {
   background: var(--card);

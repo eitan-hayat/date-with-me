@@ -6,10 +6,21 @@
 
 const ACTIVITIES = [
   { id: 'food',     emoji: '🍝', label: 'Food',          note: 'the undefeated classic' },
+  { id: 'drinks',   emoji: '🍸', label: 'Drinks',        note: 'one turns into three' },
+  { id: 'bowling',  emoji: '🎳', label: 'Bowling',       note: 'I will lose gracefully' },
+  { id: 'karting',  emoji: '🏎️', label: 'Karting',       note: 'I will not lose gracefully' },
+  { id: 'escape',   emoji: '🔐', label: 'Escape room',   note: 'locked in together' },
   { id: 'bikes',    emoji: '🚲', label: 'Bikes',         note: 'wind, sweat, romance' },
+  { id: 'beach',    emoji: '🏖️', label: 'The beach',     note: 'sand everywhere, worth it' },
+  { id: 'picnic',   emoji: '🧺', label: 'Picnic',        note: 'a blanket and no plan' },
   { id: 'trip',     emoji: '🚗', label: 'A trip',        note: 'leave the city behind' },
   { id: 'italy',    emoji: '🇮🇹', label: 'Italy',         note: 'yes, that Italy' },
   { id: 'movie',    emoji: '🎬', label: 'Movie night',   note: 'popcorn negotiations' },
+  { id: 'music',    emoji: '🎤', label: 'Live music',    note: 'too loud to argue' },
+  { id: 'dancing',  emoji: '💃', label: 'Dancing',       note: 'one of us can' },
+  { id: 'museum',   emoji: '🖼️', label: 'Museum',        note: 'strong opinions, quietly' },
+  { id: 'games',    emoji: '🎲', label: 'Board games',   note: 'friendship-ending' },
+  { id: 'spa',      emoji: '💆', label: 'Spa day',       note: 'silence, finally' },
   { id: 'pool',     emoji: '🏊', label: 'Pool day',      note: 'floating, mostly' },
   { id: 'walk',     emoji: '🚶', label: 'A long walk',   note: 'and talking too much' },
   { id: 'cook',     emoji: '👨‍🍳', label: 'Cooking night', note: 'someone will burn something' },
@@ -260,6 +271,226 @@ const FLOWS = {
     },
   ],
 
+  bowling: [
+    {
+      id: 'stakes', q: 'What are we playing for?',
+      options: [
+        { id: 'dinner', emoji: '🍔', label: 'Loser buys dinner' },
+        { id: 'fun',    emoji: '😌', label: 'Just for fun' },
+        { id: 'bumper', emoji: '🛡️', label: 'Bumpers up, no shame' },
+        { id: 'war',    emoji: '😤', label: 'You are going down' },
+      ],
+    },
+    {
+      id: 'after', q: 'And afterwards?',
+      options: [
+        { id: 'arcade', emoji: '🕹️', label: 'The arcade next door' },
+        { id: 'drinks', emoji: '🍺', label: 'Drinks' },
+        { id: 'food',   emoji: '🍕', label: 'Food, obviously' },
+      ],
+    },
+  ],
+
+  karting: [
+    {
+      id: 'mode', q: 'How seriously are we taking this?',
+      options: [
+        { id: 'serious', emoji: '🏁', label: 'Deadly serious' },
+        { id: 'friendly', emoji: '🙂', label: 'Friendly laps' },
+        { id: 'photo',   emoji: '📸', label: 'I just want the helmet photo' },
+        { id: 'drive',   emoji: '🔑', label: 'Loser drives home' },
+      ],
+    },
+    {
+      id: 'after', q: 'Then what?',
+      options: [
+        { id: 'burgers', emoji: '🍔', label: 'Burgers' },
+        { id: 'ice',     emoji: '🍦', label: 'Ice cream' },
+        { id: 'again',   emoji: '🔁', label: 'A rematch' },
+      ],
+    },
+  ],
+
+  escape: [
+    {
+      id: 'theme', q: 'Which room?',
+      options: [
+        { id: 'horror',  emoji: '👻', label: 'Horror' },
+        { id: 'heist',   emoji: '💎', label: 'Heist' },
+        { id: 'mystery', emoji: '🔍', label: 'Mystery' },
+        { id: 'pirate',  emoji: '🏴‍☠️', label: 'Pirates' },
+      ],
+    },
+    {
+      id: 'plan', q: 'Honest prediction?',
+      options: [
+        { id: 'fast',  emoji: '⏱️', label: 'Out in forty minutes' },
+        { id: 'hints', emoji: '🆘', label: 'We will need every hint' },
+        { id: 'panic', emoji: '😰', label: 'I panic, you solve' },
+      ],
+    },
+  ],
+
+  beach: [
+    {
+      id: 'when', q: 'When are we going?',
+      options: [
+        { id: 'morning', emoji: '🌤️', label: 'Morning, empty beach' },
+        { id: 'sunset',  emoji: '🌅', label: 'Golden hour' },
+        { id: 'late',    emoji: '🌊', label: 'Night swim' },
+      ],
+    },
+    {
+      id: 'bring', q: 'What are we bringing?',
+      options: [
+        { id: 'melon',   emoji: '🍉', label: 'Watermelon' },
+        { id: 'speaker', emoji: '🔊', label: 'Speaker and snacks' },
+        { id: 'towels',  emoji: '🏖️', label: 'Just towels' },
+      ],
+    },
+  ],
+
+  picnic: [
+    {
+      id: 'where', q: 'Where are we spreading the blanket?',
+      options: [
+        { id: 'park',  emoji: '🌳', label: 'A park' },
+        { id: 'beach', emoji: '🏖️', label: 'The beach' },
+        { id: 'roof',  emoji: '🌆', label: 'A rooftop' },
+        { id: 'view',  emoji: '⛰️', label: 'Somewhere with a view' },
+      ],
+    },
+    {
+      id: 'food', q: 'What is in the basket?',
+      options: [
+        { id: 'cheese', emoji: '🧀', label: 'Cheese and bread' },
+        { id: 'melon',  emoji: '🍉', label: 'Watermelon and nothing else' },
+        { id: 'full',   emoji: '🥗', label: 'A full spread' },
+        { id: 'market', emoji: '🛒', label: 'Whatever the market has' },
+      ],
+    },
+  ],
+
+  music: [
+    {
+      id: 'kind', q: 'What are we listening to?',
+      options: [
+        { id: 'rock',   emoji: '🎸', label: 'Rock' },
+        { id: 'jazz',   emoji: '🎷', label: 'Jazz' },
+        { id: 'elec',   emoji: '🎛️', label: 'Electronic' },
+        { id: 'israeli', emoji: '🇮🇱', label: 'Something Israeli' },
+        { id: 'any',    emoji: '🎶', label: 'Whatever is on' },
+      ],
+    },
+    {
+      id: 'where', q: 'How big?',
+      options: [
+        { id: 'small', emoji: '🕯️', label: 'Small venue, close up' },
+        { id: 'big',   emoji: '🎆', label: 'A proper show' },
+        { id: 'bar',   emoji: '🍻', label: 'A bar with a band' },
+      ],
+    },
+  ],
+
+  dancing: [
+    {
+      id: 'where', q: 'Dancing where?',
+      options: [
+        { id: 'salsa', emoji: '💃', label: 'Salsa night' },
+        { id: 'club',  emoji: '🪩', label: 'A club' },
+        { id: 'home',  emoji: '🏠', label: 'The kitchen, at home' },
+        { id: 'any',   emoji: '🎵', label: 'Wherever there is music' },
+      ],
+    },
+    {
+      id: 'skill', q: 'Be honest.',
+      options: [
+        { id: 'can',   emoji: '🕺', label: 'I can actually dance' },
+        { id: 'cant',  emoji: '🤷', label: 'I cannot, and I will anyway' },
+      ],
+    },
+  ],
+
+  museum: [
+    {
+      id: 'what', q: 'Looking at what?',
+      options: [
+        { id: 'art',   emoji: '🎨', label: 'Art' },
+        { id: 'hist',  emoji: '🏛️', label: 'History' },
+        { id: 'photo', emoji: '📷', label: 'Photography' },
+        { id: 'weird', emoji: '🦴', label: 'A weird small museum' },
+      ],
+    },
+    {
+      id: 'after', q: 'Afterwards?',
+      options: [
+        { id: 'coffee', emoji: '☕', label: 'Coffee and strong opinions' },
+        { id: 'shop',   emoji: '🛍️', label: 'The gift shop' },
+        { id: 'walk',   emoji: '🚶', label: 'A long walk' },
+      ],
+    },
+  ],
+
+  games: [
+    {
+      id: 'which', q: 'Which game?',
+      options: [
+        { id: 'shesh', emoji: '🎲', label: 'Backgammon' },
+        { id: 'catan', emoji: '🏝️', label: 'Catan' },
+        { id: 'cards', emoji: '🃏', label: 'Cards' },
+        { id: 'new',   emoji: '📦', label: 'Something new' },
+      ],
+    },
+    {
+      id: 'stakes', q: 'Stakes?',
+      options: [
+        { id: 'next',  emoji: '📅', label: 'Winner picks the next date' },
+        { id: 'none',  emoji: '🕊️', label: 'No stakes, we stay friends' },
+        { id: 'dish',  emoji: '🧽', label: 'Loser does the dishes' },
+      ],
+    },
+  ],
+
+  spa: [
+    {
+      id: 'what', q: 'What kind of quiet?',
+      options: [
+        { id: 'massage', emoji: '💆', label: 'Massage' },
+        { id: 'springs', emoji: '♨️', label: 'Hot springs' },
+        { id: 'sauna',   emoji: '🧖', label: 'Sauna and steam' },
+        { id: 'allday',  emoji: '🕯️', label: 'The whole day' },
+      ],
+    },
+    {
+      id: 'after', q: 'And after?',
+      options: [
+        { id: 'nap',    emoji: '😴', label: 'A nap' },
+        { id: 'dinner', emoji: '🍽️', label: 'Dinner' },
+        { id: 'quiet',  emoji: '🤫', label: 'Nothing. Silence.' },
+      ],
+    },
+  ],
+
+  drinks: [
+    {
+      id: 'kind', q: 'What are we drinking?',
+      options: [
+        { id: 'cocktail', emoji: '🍸', label: 'Cocktails' },
+        { id: 'wine',     emoji: '🍷', label: 'Wine' },
+        { id: 'beer',     emoji: '🍺', label: 'Beer garden' },
+        { id: 'roof',     emoji: '🌆', label: 'Rooftop, anything' },
+      ],
+    },
+    {
+      id: 'pace', q: 'What are we expecting?',
+      options: [
+        { id: 'one',   emoji: '🍽️', label: 'One, then dinner' },
+        { id: 'few',   emoji: '🥂', label: 'A few' },
+        { id: 'close', emoji: '🌙', label: 'Until they close' },
+      ],
+    },
+  ],
+
   surprise: [],
 };
 
@@ -423,6 +654,28 @@ function buildRecs(activity, answers, city) {
     const dish = { pasta: 'fresh pasta', sushi: 'sushi ingredients', shakshuka: 'shakshuka', steak: 'steak', dessert: 'dessert' }[answers.dish] || 'dinner';
     pushIdea('Where we shop', 'Market beats supermarket. Always.', `market ${city}`);
     pushWeb(`${cap(dish)} recipes`, 'One of us reads it. One of us ignores it.', `${dish} recipe`);
+  }
+
+  const SEARCHES = {
+    bowling: ['bowling alley', 'Book a lane, they fill up on weekends.'],
+    karting: ['go kart track', 'Check the age and licence rules before we drive out.'],
+    escape:  ['escape room', 'Book ahead. The good rooms go first.'],
+    spa:     ['spa day', 'Call rather than book online, they hold better slots.'],
+    beach:   ['best beach', 'Parking is the hard part, not the sea.'],
+    music:   ['live music venue', 'Check who is actually playing that night.'],
+    dancing: ['dance bar salsa club', 'Late start. Nothing happens before 22:00.'],
+    museum:  ['museum', 'Check closing time, most shut early.'],
+    games:   ['board game cafe', 'They lend you the games. All of them.'],
+    picnic:  ['park with grass', 'Shade matters more than the view.'],
+    drinks:  ['cocktail bar', 'The good ones are small and hard to find.'],
+  };
+  if (SEARCHES[activity]) {
+    const [term, note] = SEARCHES[activity];
+    pushIdea(`${term} in ${city}`, note, `${term} ${city}`);
+    if (activity === 'drinks' && answers.kind === 'wine') pushIdea(`wine bars in ${city}`, 'Somewhere we can hear each other.', `wine bar ${city}`);
+    if (activity === 'bowling' && answers.after === 'food') pushIdea('Food nearby', 'For the loser to pay for.', `restaurants ${city}`);
+    if (activity === 'picnic') pushIdea('Where to buy the food', 'Market first, park second.', `market ${city}`);
+    if (activity === 'beach' && answers.bring === 'melon') pushIdea('Watermelon', 'Non-negotiable.', `fruit market ${city}`);
   }
 
   if (activity === 'shopping') {

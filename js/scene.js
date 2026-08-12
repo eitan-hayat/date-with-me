@@ -224,6 +224,66 @@ function cinemaScreen(p) {
     <rect x="0" y="300" width="${W}" height="${PIC - 300}" fill="${p.ground2}"/>`;
 }
 
+function lanes(p) {
+  return `
+    <rect x="0" y="0" width="${W}" height="${PIC}" fill="${p.near}" opacity="0.55"/>
+    ${[0, 1, 2].map((i) => {
+      const x = 70 + i * 190;
+      return `
+        <path d="M ${x} ${PIC} L ${x + 130} ${PIC} L ${x + 96} 120 L ${x + 34} 120 Z"
+              fill="${p.wall}" opacity="${0.75 - i * 0.06}"/>
+        ${[0, 1, 2, 3, 4, 5].map((k) => `
+          <circle cx="${x + 52 + (k % 3) * 13}" cy="${132 + Math.floor(k / 3) * 12}" r="5"
+                  fill="${p.sun}" opacity="0.9"/>`).join('')}`;
+    }).join('')}`;
+}
+
+function track(p) {
+  return `
+    <path d="M -20 ${HORIZON} Q 150 ${HORIZON - 66} 320 ${HORIZON} Z" fill="${p.far}" opacity="0.7"/>
+    <path d="M 0 ${MID + 6} Q 320 ${MID - 24} ${W} ${MID + 6} L ${W} ${PIC} L 0 ${PIC} Z"
+          fill="${p.ink}" opacity="0.45"/>
+    ${[0, 1, 2, 3, 4].map((i) => `
+      <rect x="${40 + i * 130}" y="${MID + 38}" width="42" height="6" rx="3" fill="#fff" opacity="0.5"/>`).join('')}
+    ${[[92, 1], [556, 0.85]].map(([x, sc]) => `
+      <g transform="translate(${x} ${HORIZON - 2}) scale(${sc})">
+        <path d="M 0 0 L 0 -66" stroke="${p.ink}" stroke-width="4"/>
+        <path d="M 2 -66 l 40 12 l -40 12 Z" fill="${p.accent}"/>
+      </g>`).join('')}`;
+}
+
+function stage(p) {
+  return `
+    <rect x="0" y="0" width="${W}" height="${PIC}" fill="${p.near}" opacity="0.6"/>
+    <rect x="110" y="96" width="420" height="172" rx="6" fill="${p.ink}" opacity="0.65"/>
+    ${[0, 1, 2, 3, 4].map((i) => `
+      <path d="M ${150 + i * 90} 96 L ${104 + i * 90} 300 L ${196 + i * 90} 300 Z"
+            fill="${p.sun}" opacity="0.2"/>
+      <circle cx="${150 + i * 90}" cy="92" r="8" fill="${p.sun}" opacity="0.95"/>`).join('')}
+    <rect x="196" y="196" width="9" height="66" rx="4" fill="${p.ink}" opacity="0.9"/>
+    <circle cx="200" cy="188" r="12" fill="${p.ink}" opacity="0.9"/>
+    <rect x="0" y="300" width="${W}" height="${PIC - 300}" fill="${p.ground2}"/>`;
+}
+
+function frames(p) {
+  return [[80, 0], [206, 1], [332, 0]].map(([x, tall]) => `
+    <rect x="${x}" y="${tall ? 74 : 92}" width="96" height="${tall ? 116 : 84}" rx="3"
+          fill="${p.sun}" opacity="0.45"/>
+    <rect x="${x}" y="${tall ? 74 : 92}" width="96" height="${tall ? 116 : 84}" rx="3"
+          fill="none" stroke="${p.ink}" stroke-width="5" opacity="0.65"/>`).join('');
+}
+
+function blanket(p, x) {
+  return `
+    <ellipse cx="${x}" cy="${FOOT + 7}" rx="152" ry="26" fill="${p.accent}" opacity="0.9"/>
+    <ellipse cx="${x}" cy="${FOOT + 7}" rx="152" ry="26" fill="none" stroke="${p.ink}"
+             stroke-width="3" opacity="0.22"/>
+    <path d="M ${x + 74} ${FOOT + 3} l 0 -28 q 0 -8 9 -8 l 32 0 q 9 0 9 8 l 0 28 Z"
+          fill="${p.ink}" opacity="0.7"/>
+    <path d="M ${x + 79} ${FOOT - 33} q 16 -11 32 0" stroke="${p.ink}" stroke-width="3.5"
+          fill="none" opacity="0.7"/>`;
+}
+
 /* ---------- foreground props ---------- */
 
 function bikes(p, cx) {
@@ -288,26 +348,43 @@ function dateScene(o) {
 
   const homeFood = act === 'food' && a.vibe === 'home';
   const homeMovie = act === 'movie' && a.where !== 'cinema' && a.where !== 'roof';
-  const indoors = act === 'cook' || act === 'nothing' || homeFood || homeMovie;
-  const cinema = act === 'movie' && !homeMovie;
+  const homeDance = act === 'dancing' && a.where === 'home';
+  const kitchen = act === 'cook' || homeFood;
+  const indoors = kitchen || homeMovie || homeDance
+                  || ['nothing', 'games', 'spa', 'escape', 'museum'].includes(act);
+  const bigRoom = act === 'bowling' || (act === 'movie' && !homeMovie)
+                  || act === 'music' || (act === 'dancing' && !homeDance);
 
   let backdrop = '', prop = '', cx = CX;
 
-  if (indoors) {
-    backdrop = indoorRoom(p, act === 'cook' || homeFood ? p.sun : p.accent);
-    prop = (act === 'cook' || homeFood) ? counter(p, 300) : sofa(p, 300);
+  /* Photos land bottom-left, so any left-hand prop moves to the other
+     side of the couple rather than hiding behind them. */
+  const shots = (o.photos || []).filter(Boolean).slice(0, 2);
+  const propX = shots.length ? Math.min(W - 76, CX + 122) : 150;
+
+  if (act === 'bowling') {
+    backdrop = lanes(p);
+    cx = 320;
+  } else if (indoors) {
+    backdrop = indoorRoom(p, kitchen ? p.sun : p.accent) + (act === 'museum' ? frames(p) : '');
+    prop = kitchen ? counter(p, 300)
+         : ['nothing', 'games'].includes(act) || homeMovie ? sofa(p, 300) : '';
     cx = 470;
-  } else if (cinema) {
-    backdrop = cinemaScreen(p);
+  } else if (bigRoom) {
+    backdrop = act === 'movie' ? cinemaScreen(p) : stage(p);
     cx = 320;
   } else {
     switch (act) {
       case 'italy':    backdrop = arches(p); break;
       case 'trip':     backdrop = hills(p); break;
+      case 'karting':  backdrop = track(p); break;
       case 'pool':     backdrop = poolScene(p); break;
       case 'shopping': backdrop = shopfronts(p); prop = bags(p, cx); break;
       case 'bikes':    backdrop = sea(p); prop = bikes(p, cx); break;
-      case 'food':     backdrop = a.vibe === 'roof' ? skyline(p) : sea(p); prop = bistroTable(p, 150); break;
+      case 'beach':    backdrop = sea(p); break;
+      case 'picnic':   backdrop = a.where === 'beach' ? sea(p) : hills(p); prop = blanket(p, cx); break;
+      case 'drinks':   backdrop = skyline(p); prop = bistroTable(p, propX); break;
+      case 'food':     backdrop = a.vibe === 'roof' ? skyline(p) : sea(p); prop = bistroTable(p, propX); break;
       case 'walk':     backdrop = (a.where === 'market' || a.where === 'neve') ? shopfronts(p) : sea(p); break;
       default:         backdrop = sea(p);
     }
@@ -316,17 +393,35 @@ function dateScene(o) {
   const sunY = mood === 'golden' ? HORIZON - 18 : 92;
   const sunR = mood === 'golden' ? 66 : mood === 'night' ? 32 : 44;
 
-  const stars = (mood === 'night' && !indoors && !cinema)
+  const stars = (mood === 'night' && !indoors && !bigRoom)
     ? [[52, 54], [136, 92], [214, 40], [292, 74], [398, 50], [474, 96], [548, 62],
        [598, 126], [96, 142], [340, 116], [252, 150], [606, 40]]
       .map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 1.7 : 2.6}" fill="#fff" opacity="0.8"/>`).join('')
     : '';
 
-  const sun = (indoors || cinema) ? '' : `
+  const sun = (indoors || bigRoom) ? '' : `
     <circle cx="${LX}" cy="${sunY}" r="${sunR * 2.3}" fill="url(#g${uid})"/>
     <circle cx="${LX}" cy="${sunY}" r="${sunR}" fill="${p.sun}"/>`;
 
   const line2 = [o.dateStr, o.time].filter(Boolean).join('  ·  ');
+
+  /* Real photos, when he uploaded them, pinned on like polaroids.
+     They arrive as data URIs, so they survive the PNG export intact. */
+  const pinned = shots.map((src, i) => {
+    const k = shots.length > 1 ? 0.84 : 1;
+    const pw = 122 * k, ph = 142 * k;
+    const px = 22 + i * (pw + 12);
+    const py = PIC - ph - 16 - (i ? 8 : 0);
+    const rot = i ? 3.5 : -4.5;
+    return `
+      <g transform="rotate(${rot} ${px + pw / 2} ${py + ph / 2})">
+        <rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="3" fill="#fdf8f3"
+              stroke="rgba(47,42,38,0.16)" stroke-width="1"/>
+        <image href="${src}" x="${px + 7 * k}" y="${py + 7 * k}"
+               width="${pw - 14 * k}" height="${pw - 14 * k}"
+               preserveAspectRatio="xMidYMid slice"/>
+      </g>`;
+  }).join('');
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 460" width="${W}" height="460" role="img"
@@ -349,10 +444,11 @@ function dateScene(o) {
     <rect width="${W}" height="${PIC}" fill="url(#s${uid})"/>
     ${stars}
     ${sun}
-    ${(indoors || cinema) ? '' : outdoorGround(p)}
+    ${(indoors || bigRoom) ? '' : outdoorGround(p)}
     ${backdrop}
     ${couple(p, cx)}
     ${prop}
+    ${pinned}
   </g>
 
   <text x="${W / 2}" y="428" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"

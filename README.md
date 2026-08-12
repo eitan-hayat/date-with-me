@@ -22,7 +22,7 @@ their own configuration and nothing is stored anywhere.
 | Envelope | "You have one unopened invitation." |
 | The question | Yes / No. The No button dodges the cursor, teleports on touch, shrinks to a small pill and keeps running. It never disappears and it can never be caught: the labels cycle (`No` → `Hmm` → `Maybe?` → `So close` → `Never` → back round) and so do the taunts. Every attempt is counted. |
 | Celebration | Confetti from six directions, staggered reveal, and a photo if you set one. |
-| Activity | Food, bikes, a trip, Italy, movie night, pool, a walk, cooking, shopping, surprise me, or nothing at all. |
+| Activity | Twenty-two of them: food, drinks, bowling, karting, escape room, bikes, the beach, a picnic, a trip, Italy, movie night, live music, dancing, a museum, board games, a spa day, the pool, a long walk, cooking, shopping, surprise me, or nothing at all. |
 | Follow-ups | Branch by activity. Cuisine and vibe, which route, which Italian city, who cooks. |
 | Suggestions | Real places for Tel Aviv, live Google Maps searches everywhere else, plus a box to type a venue of her own. |
 | Dress code | Casual, nice, fancy, or pyjamas. |
@@ -72,10 +72,6 @@ Sunset times are computed locally from the standard solar equations in
 `sunsetFor()`, using the coordinates in `CITY_COORDS`. A city that isn't on that
 list simply gets the plain time slots. Better no number than a wrong one.
 
-Instagram handles render as links only. Pulling someone's profile picture needs
-an approved Instagram API app, so real photos come from the two image URL fields
-instead.
-
 ## The picture
 
 There is no image model behind a static page, so the celebration picture is
@@ -88,7 +84,14 @@ on the stove). Two silhouettes stand on the right third holding hands, in two
 tones so they read as two people rather than one dark slab.
 
 It costs nothing, needs no network, renders instantly, and there is no case
-where it fails to appear. If you set photo URLs those take priority on the
-celebration and the ticket, and the drawing still leads the "it's official"
-screen. **Save the picture** rasterises it to a 2x PNG, falling back to the SVG
-if the canvas route is blocked.
+where it fails to appear.
+
+Photos you upload in setup are pinned onto it as polaroids, and any side prop
+moves to the far side of the couple so nothing ends up hidden behind them.
+**Save the picture** rasterises the whole thing, photos included, to a 2x PNG,
+falling back to the SVG if the canvas route is blocked.
+
+Photos are shrunk to 200px square at JPEG quality 0.6 before they go into the
+link. That is deliberate: the data URI is base64, and the config carrying it is
+base64'd again, so every kilobyte costs about 1.8k characters of link. The setup
+page shows the resulting length and warns when it gets unwieldy.

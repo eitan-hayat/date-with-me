@@ -18,99 +18,121 @@
     <section class="stage" style="justify-content:flex-start;padding-top:8px">
       <div class="eyebrow">Setup</div>
       <h1>Build your link.</h1>
-      <p class="sub">Fill this in, copy the link at the bottom, send it. Everything lives inside the
-        link itself, so there is no server and nothing is saved anywhere.</p>
 
       <div class="callout">
         <b>This page is yours. The link it builds is hers.</b><br>
-        Bookmark this one address. Every time you open it you land here, and the
-        link you generate at the bottom is the invitation. It carries her name,
-        your options and your free days inside it. Send a friend this same page
-        and they get their own version.
+        Everything below is already filled in and ready to send. Change what you
+        want, ignore the rest. Nothing is saved on a server: your answers are
+        packed into the link itself.
       </div>
 
       <div class="setup-section" style="border:none;margin-top:0;padding-top:0">
-        <h3>Who</h3>
+        <h3>The basics <span class="badge req">Needed</span></h3>
         <div class="field">
           <label>Your name</label>
-          <input id="from" placeholder="Eitan">
+          <input id="from" value="Eitan">
         </div>
         <div class="field">
           <label>Her name</label>
-          <input id="to" placeholder="Or">
+          <input id="to" value="Or">
         </div>
         <div class="field">
-          <label>Your WhatsApp number (where her answers get sent)</label>
-          <input id="phone" type="tel" inputmode="tel" placeholder="+972 5x xxx xxxx">
-          <div class="hint">Include the country code. Leave empty and she'll pick the chat herself.</div>
-        </div>
-        <div class="field">
-          <label>City (used for the recommendations)</label>
-          <input id="city" placeholder="Tel Aviv">
-          <div class="hint">Tel Aviv gets hand-picked places. Anywhere else gets live Maps searches.</div>
+          <label>Your city</label>
+          <input id="city" value="Tel Aviv">
+          <div class="hint">Used for the place suggestions and the sunset time.
+            Tel Aviv gets hand-picked venues, anywhere else gets live Maps searches.</div>
         </div>
       </div>
 
       <div class="setup-section">
-        <h3>Options she can choose from</h3>
+        <h3>Your WhatsApp <span class="badge opt">Optional</span></h3>
+        <div class="field">
+          <label>Number her answers get sent to</label>
+          <input id="phone" type="tel" inputmode="tel" placeholder="+972 5x xxx xxxx">
+          <div class="hint">With the country code. Leave it empty and she picks the
+            chat herself when she taps <em>Send it to you</em>.</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h3>What she can choose from</h3>
+        <p class="instruction">
+          All <b id="actCount">22</b> options are on her list right now.
+          <b>Tap any one to take it off the list.</b> Faded and crossed out means
+          she will never see it.
+        </p>
         <div class="toggle-row" id="acts"></div>
+        <button class="btn ghost" id="allOn" style="margin-top:14px">Put all of them back</button>
       </div>
 
       <div class="setup-section">
         <h3>Days you can't do</h3>
-        <p class="tiny" style="margin:-8px 0 14px">These get greyed out in her calendar.</p>
+        <p class="instruction">
+          Right now <b id="dayNote">every day is open</b>.
+          <b>Tap a day to block it</b> so it shows up crossed out in her calendar.
+        </p>
         <div class="toggle-row" id="days"></div>
-        <div class="field" style="margin-top:16px">
-          <label>How far ahead she can book (days)</label>
+        <div class="field" style="margin-top:18px">
+          <label>How far ahead she can book</label>
           <input id="horizon" type="number" min="7" max="365" value="60">
+          <div class="hint">In days.</div>
         </div>
       </div>
 
       <div class="setup-section">
-        <h3>Instagram</h3>
-        <div class="field">
-          <label>Your Instagram</label>
-          <input id="igMe" placeholder="@yourhandle">
+        <h3>Photos <span class="badge opt">Optional</span></h3>
+        <p class="instruction">
+          Pick them from your phone. They get shrunk right here in the browser and
+          travel inside the link, so no one else ever sees them. If you add them,
+          they are pinned onto the picture she gets at the end.
+        </p>
+
+        <div class="upload" id="upHer">
+          <div class="up-preview" id="prevHer">🙂</div>
+          <div class="up-body">
+            <div class="up-title">A photo of her</div>
+            <div class="up-note" id="noteHer">Shown the moment she says yes.</div>
+            <div class="up-actions">
+              <label class="btn ghost up-btn">Choose photo<input type="file" accept="image/*" id="fileHer" hidden></label>
+              <button class="btn ghost up-btn hide" id="clearHer">Remove</button>
+            </div>
+          </div>
         </div>
-        <div class="field">
-          <label>Her Instagram</label>
-          <input id="igHer" placeholder="@herhandle">
-          <div class="hint">
-            Both appear as tappable handles on the celebration and the ticket.
-            They can't pull your profile pictures in: Instagram blocks that
-            without an approved API app, so for actual photos use the two
-            fields below.
+
+        <div class="upload" id="upUs">
+          <div class="up-preview" id="prevUs">👫</div>
+          <div class="up-body">
+            <div class="up-title">A photo of the two of you</div>
+            <div class="up-note" id="noteUs">Pinned to the ticket and the final picture.</div>
+            <div class="up-actions">
+              <label class="btn ghost up-btn">Choose photo<input type="file" accept="image/*" id="fileUs" hidden></label>
+              <button class="btn ghost up-btn hide" id="clearUs">Remove</button>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="setup-section">
-        <h3>Photos &amp; a personal line</h3>
+        <h3>A line on the ticket <span class="badge opt">Optional</span></h3>
         <div class="field">
-          <label>Photo for the "she said yes" moment</label>
-          <input id="photoHer" placeholder="https://…">
-          <div class="hint">Any public image URL. Square-ish looks best.</div>
-        </div>
-        <div class="field">
-          <label>Photo of the two of you, shown on the ticket</label>
-          <input id="photoUs" placeholder="https://…">
-        </div>
-        <div class="field">
-          <label>A line printed on the ticket</label>
           <input id="note" placeholder="I'll pick you up. Wear the green one.">
+          <div class="hint">Printed at the bottom of her ticket. Leave it empty to skip it.</div>
         </div>
       </div>
 
       <div class="setup-section">
         <h3>Your link</h3>
         <div class="out" id="link">—</div>
+        <div class="meter"><span id="meterBar"></span></div>
+        <div class="tiny" id="meterNote" style="margin-bottom:16px">Link length: fine.</div>
         <button class="btn primary" id="copy">Copy link</button>
         <div class="btn-row">
           <a class="btn ghost" id="preview" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Preview it</a>
           <a class="btn ghost" id="wa" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Send on WhatsApp</a>
         </div>
         <p class="tiny" style="margin-top:16px">
-          Tip: open the preview on your phone first. The "no" button behaves differently on touch.
+          Open the preview on your phone before you send it. The "no" button
+          behaves differently on touch.
         </p>
       </div>
     </section>
@@ -122,8 +144,9 @@
     const el = (id) => document.getElementById(id);
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const picked = new Set(ACTIVITIES.map((a) => a.id));
-    const blocked = new Set();
+    const dropped = new Set();   // activities taken off her list
+    const blocked = new Set();   // weekdays he can't do
+    const photos = { photoHer: '', photoUs: '' };
 
     el('acts').innerHTML = ACTIVITIES.map((a) =>
       `<button class="toggle on" data-id="${a.id}">${a.emoji} ${a.label}</button>`).join('');
@@ -134,9 +157,19 @@
       const b = e.target.closest('.toggle');
       if (!b) return;
       const id = b.dataset.id;
-      if (picked.has(id) && picked.size > 1) picked.delete(id);
-      else picked.add(id);
-      b.classList.toggle('on', picked.has(id));
+      // Always leave her at least one thing to pick.
+      if (!dropped.has(id) && dropped.size >= ACTIVITIES.length - 1) return;
+      dropped.has(id) ? dropped.delete(id) : dropped.add(id);
+      b.classList.toggle('on', !dropped.has(id));
+      b.classList.toggle('off', dropped.has(id));
+      build();
+    });
+
+    el('allOn').addEventListener('click', () => {
+      dropped.clear();
+      el('acts').querySelectorAll('.toggle').forEach((b) => {
+        b.classList.add('on'); b.classList.remove('off');
+      });
       build();
     });
 
@@ -145,38 +178,106 @@
       if (!b) return;
       const d = +b.dataset.day;
       blocked.has(d) ? blocked.delete(d) : blocked.add(d);
-      b.classList.toggle('on', blocked.has(d));
+      b.classList.toggle('off', blocked.has(d));
       build();
     });
 
+    /* Shrink hard: the photo has to fit inside a URL. */
+    function readPhoto(file, cb) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          // Small on purpose: the photo has to survive being base64'd
+          // into the config and then base64'd again into the link.
+          const max = 200;
+          const side = Math.min(img.width, img.height);      // square crop, centred
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = max;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2,
+                        side, side, 0, 0, max, max);
+          cb(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = () => cb('');
+        img.src = reader.result;
+      };
+      reader.onerror = () => cb('');
+      reader.readAsDataURL(file);
+    }
+
+    function wireUpload(key, fileId, prevId, clearId, noteId, fallbackNote) {
+      el(fileId).addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        el(noteId).textContent = 'Shrinking it…';
+        readPhoto(f, (data) => {
+          if (!data) { el(noteId).textContent = 'Could not read that file.'; return; }
+          photos[key] = data;
+          el(prevId).innerHTML = `<img src="${data}" alt="">`;
+          el(clearId).classList.remove('hide');
+          el(noteId).textContent = Math.round(data.length / 1024) + ' KB after shrinking.';
+          build();
+        });
+      });
+
+      el(clearId).addEventListener('click', () => {
+        photos[key] = '';
+        el(fileId).value = '';
+        el(prevId).innerHTML = prevId === 'prevHer' ? '🙂' : '👫';
+        el(clearId).classList.add('hide');
+        el(noteId).textContent = fallbackNote;
+        build();
+      });
+    }
+
+    wireUpload('photoHer', 'fileHer', 'prevHer', 'clearHer', 'noteHer', 'Shown the moment she says yes.');
+    wireUpload('photoUs', 'fileUs', 'prevUs', 'clearUs', 'noteUs', 'Pinned to the ticket and the final picture.');
+
     function build() {
+      const keep = ACTIVITIES.map((a) => a.id).filter((id) => !dropped.has(id));
+
       const cfg = {
         ...DEFAULT_CONFIG,
         from: el('from').value.trim() || 'Eitan',
         to: el('to').value.trim() || 'Or',
         phone: el('phone').value.trim(),
         city: el('city').value.trim() || 'Tel Aviv',
-        photoHer: el('photoHer').value.trim(),
-        photoUs: el('photoUs').value.trim(),
-        igMe: el('igMe').value.trim(),
-        igHer: el('igHer').value.trim(),
+        photoHer: photos.photoHer,
+        photoUs: photos.photoUs,
         note: el('note').value.trim(),
-        activities: ACTIVITIES.map((a) => a.id).filter((id) => picked.has(id)),
+        activities: keep,
         blockedDays: [...blocked].sort(),
         horizon: Math.min(365, Math.max(7, +el('horizon').value || 60)),
       };
 
       const base = location.href.replace(/setup\.html.*$/, 'index.html');
       const url = base + '#c=' + encodeConfig(cfg);
-      el('link').textContent = url;
+
+      el('actCount').textContent = keep.length;
+      el('dayNote').textContent = blocked.size
+        ? `${blocked.size} day${blocked.size > 1 ? 's are' : ' is'} blocked`
+        : 'every day is open';
+
+      el('link').textContent = url.length > 240 ? url.slice(0, 240) + '…' : url;
       el('preview').href = url;
+
+      // Long links still work, but they get unwieldy to send around.
+      const pct = Math.min(100, (url.length / 30000) * 100);
+      el('meterBar').style.transform = `scaleX(${pct / 100})`;
+      el('meterNote').textContent = url.length < 8000
+        ? `Link length: ${url.length} characters. Fine.`
+        : url.length < 24000
+          ? `Link length: ${url.length} characters. Fine — photos make it long.`
+          : `Link length: ${url.length} characters. Long. Use Copy link rather than WhatsApp, or drop one photo.`;
+      el('meterNote').className = url.length < 24000 ? 'tiny' : 'tiny warn';
 
       const msg = `${cfg.to} — you have one unopened invitation 💌\n${url}`;
       el('wa').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
       return url;
     }
 
-    ['from', 'to', 'phone', 'city', 'igMe', 'igHer', 'photoHer', 'photoUs', 'note', 'horizon']
+    ['from', 'to', 'phone', 'city', 'note', 'horizon']
       .forEach((id) => el(id).addEventListener('input', build));
 
     el('copy').addEventListener('click', async () => {
@@ -185,13 +286,9 @@
         await navigator.clipboard.writeText(url);
         el('copy').textContent = 'Copied ✓';
       } catch (e) {
-        const r = document.createRange();
-        r.selectNodeContents(el('link'));
-        getSelection().removeAllRanges();
-        getSelection().addRange(r);
-        el('copy').textContent = 'Select it and copy manually';
+        el('copy').textContent = 'Copy failed — use Preview, then share that page';
       }
-      setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2200);
+      setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2400);
     });
 
     build();

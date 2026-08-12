@@ -505,7 +505,6 @@ VIEWS.confirming = function () {
 
 /* The big one. Booking confirmed. */
 VIEWS.party = function () {
-  const photo = cfg.photoUs || cfg.photoHer;
   stageEl().innerHTML = `
     <div class="party">
       <div class="big-emoji pop pop-1">🎊</div>
@@ -518,12 +517,10 @@ VIEWS.party = function () {
       </div>
       ${sceneCard('pop pop-5')}
       <button class="btn ghost" id="saveScene" style="margin-bottom:20px">Save the picture</button>
-      ${photo ? `<div class="polaroid pop pop-6" style="transform:rotate(2.5deg);margin-bottom:22px"><img src="${esc(photo)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>` : ''}
       <p class="sub pop pop-6" style="margin:26px auto 26px">
         ${esc(cfg.to)} said yes to ${esc(cfg.from)}, picked the plan, and put it in the diary.
         There is no undo button. There was never even a no button.
       </p>
-      ${igRow('pop pop-6')}
       <button class="btn primary pop pop-7" id="go">One last thing →</button>
     </div>`;
 
@@ -569,7 +566,6 @@ VIEWS.ticket = function () {
         <div class="ticket-brand"><span>Confirmed reservation</span><span>${esc(REF)}</span></div>
         <h2>It's a date.</h2>
         <div class="who">${esc(cfg.from)} &nbsp;+&nbsp; ${esc(cfg.to)}</div>
-        ${igRow('', true)}
         <div class="ticket-rows">
           <div class="trow"><div class="k">Date</div><div class="v">${esc(fmtShort(state.date))}</div></div>
           <div class="trow"><div class="k">Time</div><div class="v">${esc(state.time)}</div></div>
@@ -586,9 +582,7 @@ VIEWS.ticket = function () {
       </div>
     </div>
 
-    ${cfg.photoUs
-      ? `<div class="polaroid" style="transform:rotate(2deg);margin-bottom:22px"><img src="${esc(cfg.photoUs)}" alt=""><div class="cap">${esc(fmtShort(state.date))}</div></div>`
-      : sceneCard()}
+    ${sceneCard()}
     <button class="btn primary" id="tellHim">Send it to ${esc(cfg.from)}</button>
     <div class="btn-row">
       <button class="btn ghost" id="ics">Add to calendar</button>
@@ -659,28 +653,12 @@ function sceneMarkup() {
     answers: state.answers,
     time: state.time,
     dateStr: state.date ? fmtLong(state.date) : '',
+    photos: [cfg.photoUs, cfg.photoHer].filter(Boolean),
   });
 }
 
 function sceneCard(cls) {
   return `<div class="scene ${cls || ''}">${sceneMarkup()}</div>`;
-}
-
-/* ---------------- instagram ---------------- */
-
-function igHandle(raw) {
-  return String(raw || '').trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
-}
-
-function igRow(cls, compact) {
-  const me = igHandle(cfg.igMe);
-  const her = igHandle(cfg.igHer);
-  if (!me && !her) return '';
-  const link = (h) =>
-    `<a class="ig" href="https://instagram.com/${encodeURIComponent(h)}" target="_blank" rel="noopener">@${esc(h)}</a>`;
-  return `<div class="ig-row ${cls || ''} ${compact ? 'compact' : ''}">
-    ${me ? link(me) : ''}${me && her ? '<span class="ig-dot">·</span>' : ''}${her ? link(her) : ''}
-  </div>`;
 }
 
 /* ---------------- the endless No ---------------- */
