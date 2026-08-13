@@ -309,15 +309,29 @@ function blanket(p, x) {
 
 /* ---------- foreground props ---------- */
 
-function bikes(p, cx) {
-  const bike = (x, s) => `
-    <g transform="translate(${x} ${FOOT}) scale(${s})" fill="none"
-       stroke="${p.ink}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="-30" cy="-19" r="19"/><circle cx="30" cy="-19" r="19"/>
-      <path d="M -30 -19 L -7 -51 L 21 -51 L 30 -19 M -7 -51 L 7 -19 L 30 -19 M 21 -51 L 28 -60"/>
-      <path d="M -12 -56 L 2 -56"/>
+/* One motorcycle, not two: the whole point is that they are on it
+   together. Filled rather than stroked, because a naked sportbike
+   only reads as one at thumbnail size if the tank and tail are solid. */
+function motorbike(p, x, s) {
+  return `
+    <g transform="translate(${x} ${FOOT}) scale(${s || 1})">
+      <ellipse cx="0" cy="2" rx="52" ry="6" fill="${p.ink}" opacity="0.22"/>
+      ${[-38, 38].map((wx) => `
+        <circle cx="${wx}" cy="-17" r="17" fill="${p.ink}"/>
+        <circle cx="${wx}" cy="-17" r="7.5" fill="none" stroke="${p.ink2}" stroke-width="3"/>`).join('')}
+      <!-- swingarm, engine, exhaust -->
+      <path d="M -38 -17 L -12 -21 L 4 -18 L 20 -23 L 38 -17" stroke="${p.ink}"
+            stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M -14 -14 L -33 -11" stroke="${p.ink}" stroke-width="6" stroke-linecap="round"/>
+      <!-- tail, seat, tank -->
+      <path d="M -40 -38 q -3 -7 3 -10 l 16 -1 l 2 11 Z" fill="${p.ink}"/>
+      <path d="M -22 -38 q 4 -9 16 -10 l 12 0 q 13 1 17 10 l 3 8
+               q -11 5 -24 5 l -18 0 q -7 0 -8 -6 Z" fill="${p.ink}"/>
+      <!-- forks, bars, light -->
+      <path d="M 27 -33 L 39 -8" stroke="${p.ink}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 24 -38 l 13 -5" stroke="${p.ink}" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="41" cy="-34" r="6" fill="${p.sun}" opacity="0.95"/>
     </g>`;
-  return bike(cx - 150, 1) + bike(150, 0.92);
 }
 
 function bistroTable(p, x) {
@@ -400,7 +414,8 @@ function dateScene(o) {
       case 'karting':  backdrop = track(p); break;
       case 'pool':     backdrop = poolScene(p); break;
       case 'shopping': backdrop = shopfronts(p); prop = bags(p, cx); break;
-      case 'bikes':    backdrop = sea(p); prop = bikes(p, cx); break;
+      case 'moto':     backdrop = a.where === 'coast' ? sea(p) : hills(p);
+                       prop = motorbike(p, 168, 1.15); break;
       case 'beach':    backdrop = sea(p); break;
       case 'picnic':   backdrop = a.where === 'beach' ? sea(p) : hills(p); prop = blanket(p, cx); break;
       case 'drinks':   backdrop = skyline(p); prop = bistroTable(p, propX); break;

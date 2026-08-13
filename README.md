@@ -27,7 +27,7 @@ their own configuration and nothing is stored anywhere.
 | Envelope | "You have one unopened invitation." |
 | The question | Yes / No. The No button dodges the cursor, teleports on touch, shrinks to a small pill and keeps running. It never disappears and it can never be caught: the labels cycle (`No` → `Hmm` → `Maybe?` → `So close` → `Never` → back round) and so do the taunts. Every attempt is counted. |
 | Celebration | Confetti from six directions, staggered reveal, and a photo if you set one. |
-| Activity | Twenty-two of them: food, drinks, bowling, karting, escape room, bikes, the beach, a picnic, a trip, Italy, movie night, live music, dancing, a museum, board games, a spa day, the pool, a long walk, cooking, shopping, surprise me, or nothing at all. |
+| Activity | Twenty-two of them: food, drinks, bowling, karting, escape room, a ride out on the motorbike, the beach, a picnic, a trip, Italy, movie night, live music, dancing, a museum, board games, a spa day, the pool, a long walk, cooking, shopping, surprise me, or nothing at all. |
 | Follow-ups | Branch by activity. Cuisine and vibe, which route, which Italian city, who cooks. |
 | Suggestions | Real places for Tel Aviv, live Google Maps searches everywhere else, plus a box to type a venue of her own. |
 | Dress code | Casual, nice, fancy, or pyjamas. |
@@ -111,7 +111,7 @@ drawn rather than fetched. `js/scene.js` composes an SVG postcard from her
 answers: the sky comes from the hour (`day`, `golden`, `night`, and sunset
 always wins), the backdrop from the activity (sea, skyline, hills, Roman
 arches, a pool, shopfronts, a cinema screen, a lamp-lit room), and the props
-from the details (bikes, a bistro table with two glasses, shopping bags, a pot
+from the details (the motorbike, a bistro table with two glasses, shopping bags, a pot
 on the stove). Two silhouettes stand on the right third holding hands, in two
 tones so they read as two people rather than one dark slab.
 

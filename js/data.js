@@ -10,7 +10,7 @@ const ACTIVITIES = [
   { id: 'bowling',  emoji: '🎳', label: 'Bowling',       note: 'I will lose gracefully' },
   { id: 'karting',  emoji: '🏎️', label: 'Karting',       note: 'I will not lose gracefully' },
   { id: 'escape',   emoji: '🔐', label: 'Escape room',   note: 'locked in together' },
-  { id: 'bikes',    emoji: '🚲', label: 'Bikes',         note: 'wind, sweat, romance' },
+  { id: 'moto',     emoji: '🏍️', label: 'A ride out',    note: 'two wheels and a full tank' },
   { id: 'beach',    emoji: '🏖️', label: 'The beach',     note: 'sand everywhere, worth it' },
   { id: 'picnic',   emoji: '🧺', label: 'Picnic',        note: 'a blanket and no plan' },
   { id: 'trip',     emoji: '🚗', label: 'A trip',        note: 'leave the city behind' },
@@ -57,30 +57,41 @@ const FLOWS = {
     },
   ],
 
-  bikes: [
+  moto: [
     {
-      id: 'where', q: 'Where are we riding?',
+      id: 'where', q: 'Where are we riding?', sub: 'Pick the road. The destination is just where we turn around.',
       options: [
-        { id: 'promenade', emoji: '🌊', label: 'The beach promenade' },
-        { id: 'park',      emoji: '🌳', label: 'Park HaYarkon' },
-        { id: 'jaffa',     emoji: '🕌', label: 'Down to Old Jaffa' },
-        { id: 'follow',    emoji: '🚲', label: "Wherever, I'm following you" },
+        { id: 'north',  emoji: '🏔️', label: 'North',            note: 'the Galilee, where the roads actually bend' },
+        { id: 'carmel', emoji: '🌲', label: 'Up to the Carmel',  note: 'forest the whole way, sea at the end' },
+        { id: 'jlm',    emoji: '⛰️', label: 'The Judean hills',  note: 'switchbacks all the way up' },
+        { id: 'desert', emoji: '🏜️', label: 'The Dead Sea road', note: 'empty, and very long' },
+        { id: 'coast',  emoji: '🌊', label: 'Up the coast',      note: 'slow, salty, no hurry' },
+        { id: 'follow', emoji: '🏍️', label: 'You choose',        note: "I'll ride wherever you point" },
       ],
     },
     {
-      id: 'when', q: 'What time of day?',
+      id: 'when', q: 'When are we leaving?',
       options: [
-        { id: 'sunrise', emoji: '🌄', label: 'Sunrise', note: 'ambitious of you' },
-        { id: 'golden',  emoji: '🌇', label: 'Golden hour' },
-        { id: 'night',   emoji: '🌙', label: 'Night ride' },
+        { id: 'sunrise', emoji: '🌄', label: 'Early, before the traffic', note: 'ambitious of you' },
+        { id: 'golden',  emoji: '🌇', label: 'Afternoon, into golden hour' },
+        { id: 'night',   emoji: '🌙', label: 'Night ride', note: 'cold, empty, the best one' },
       ],
     },
     {
-      id: 'stop', q: 'Coffee stop halfway?',
+      id: 'pace', q: 'And how am I riding?', sub: 'Be honest, I will do exactly what you pick.',
       options: [
-        { id: 'yes',  emoji: '☕', label: 'Obviously' },
-        { id: 'ice',  emoji: '🍦', label: 'Ice cream instead' },
-        { id: 'no',   emoji: '💪', label: 'No. We are athletes.' },
+        { id: 'slow', emoji: '🐢', label: 'Gently',  note: 'I want to look at things' },
+        { id: 'real', emoji: '🏍️', label: 'Properly', note: 'lean it over' },
+        { id: 'fast', emoji: '😤', label: 'Do not tell my mother' },
+      ],
+    },
+    {
+      id: 'stop', q: 'Stopping anywhere?',
+      options: [
+        { id: 'coffee', emoji: '☕', label: 'Coffee at a viewpoint' },
+        { id: 'food',   emoji: '🍽️', label: 'A proper meal somewhere' },
+        { id: 'ice',    emoji: '🍦', label: 'Ice cream. Non-negotiable.' },
+        { id: 'no',     emoji: '⛽', label: 'Fuel only. We ride.' },
       ],
     },
   ],
@@ -606,16 +617,20 @@ function buildRecs(activity, answers, city) {
     pushIdea('Ice cream on the way', 'Mandatory checkpoint.', `ice cream ${city}`);
   }
 
-  if (activity === 'bikes') {
-    const map = {
-      promenade: 'Tel Aviv beach promenade bike path',
-      park: 'Park HaYarkon bike trail',
-      jaffa: 'Jaffa port bike route',
-      follow: 'bike trails near me',
-    }[answers.where];
-    pushIdea('The route', 'Open the map before we go, not during.', `${map} ${city}`);
-    if (answers.stop === 'yes') pushIdea('Coffee stop', 'Somewhere with a place to lock the bikes.', `cafe with outdoor seating ${city}`);
-    if (answers.stop === 'ice') pushIdea('Ice cream stop', 'Earned it.', `ice cream ${city}`);
+  if (activity === 'moto') {
+    const [route, why] = {
+      north:  ['Route 899 and the Galilee panhandle', 'The one everybody rides north for.'],
+      carmel: ['Carmel forest road, Route 721',       'Trees the whole way, then the sea.'],
+      jlm:    ['Route 386 up to Jerusalem',           'Switchbacks all the way up.'],
+      desert: ['Route 90 along the Dead Sea',         'Check the heat before we commit to it.'],
+      coast:  ['The old coast road north',            'Slow, salty, no hurry.'],
+      follow: ['Motorcycle roads near Tel Aviv',      'Anything with a bend in it.'],
+    }[answers.where] || ['Motorcycle roads near Tel Aviv', 'Anything with a bend in it.'];
+    pushIdea(route, why, `${route} Israel`);
+    if (answers.stop === 'coffee') pushIdea('Coffee with a view', 'Somewhere we can park where we can see the bike.', `cafe with a view ${city}`);
+    if (answers.stop === 'food')   pushIdea('Somewhere to eat on the way', 'Riding hungry is how arguments start.', `restaurant near route ${city}`);
+    if (answers.stop === 'ice')    pushIdea('Ice cream stop', 'Earned it.', `ice cream ${city}`);
+    pushWeb('The helmet situation', "Second helmet, and a jacket that fits you.", 'motorcycle helmet for passenger');
   }
 
   if (activity === 'pool') {

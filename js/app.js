@@ -842,6 +842,9 @@ function cityFallback() {
                               car: 'The car' }[a.where] || cfg.city;
     case 'trip':     return { north: 'North', desert: 'The desert',
                               coast: 'Up the coast', jlm: 'Jerusalem' }[a.direction] || cfg.city;
+    case 'moto':     return { north: 'The Galilee', carmel: 'The Carmel',
+                              jlm: 'The Judean hills', desert: 'The Dead Sea road',
+                              coast: 'Up the coast' }[a.where] || 'The open road';
     default:         return cfg.city;
   }
 }

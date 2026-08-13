@@ -82,6 +82,9 @@ function readConfig() {
   if (!Array.isArray(cfg.activities) || !cfg.activities.length) {
     cfg.activities = DEFAULT_CONFIG.activities;
   }
+  // 'bikes' was bicycles before it became the motorcycle ride. Any link
+  // built back then still names it, and would otherwise quietly lose it.
+  cfg.activities = cfg.activities.map((id) => (id === 'bikes' ? 'moto' : id));
   if (!Array.isArray(cfg.rides)) cfg.rides = DEFAULT_CONFIG.rides;
   cfg.rides = cfg.rides
     .filter((r) => r && r.label)
