@@ -34,6 +34,7 @@ const state = {
   contact: { phone: '', email: '' },
   terms: [],
   noAttempts: 0,
+  decoyAttempts: 0,  // options she reached for that were never hers to pick
   calMonth: null,
 };
 
@@ -125,6 +126,14 @@ function askQuestion(opts) {
     id: OTHER, emoji: '✏️', label: 'Something else', note: opts.otherNote || 'your idea',
   }];
 
+  /* His shortlist. Star anything and the rest become decoys: they still
+     look pressable, they just refuse to be pressed. Including "Something
+     else", or the shortlist would mean nothing. */
+  const favs = opts.favorites || [];
+  const gated = favs.length > 0;
+  const isFav = (id) => favs.includes(id);
+  const tileState = (id) => (!gated ? '' : isFav(id) ? 'fav' : 'decoy');
+
   /* Two shapes of tile: the plain one, and — when the question is about
      things you have to see to choose between — a photo card. "Something
      else" stays plain either way; there is no photo of an idea. */
@@ -138,7 +147,7 @@ function askQuestion(opts) {
           ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
         </span>
       </button>` : `
-      <button class="opt ${selected === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
+      <button class="opt ${tileState(o.id)} ${selected === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
         ${o.emoji ? `<span class="emoji">${o.emoji}</span>` : ''}
         <span>${esc(o.label)}</span>
         ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
@@ -148,6 +157,7 @@ function askQuestion(opts) {
     ${head(eyebrow, title, sub)}
     <div class="grid ${opts.oneCol ? 'one' : ''} ${opts.gallery ? 'gallery' : ''}">${
       tiles.map(tile).join('')}</div>
+    ${gated ? `<div class="taunt grid-taunt" id="gridTaunt"></div>` : ''}
     <div class="other-box ${isOther ? '' : 'hide'}" id="otherBox">
       <input id="otherInput" type="${inputType}" placeholder="${esc(placeholder)}"
              value="${esc(state.other[key] || '')}" autocomplete="off">
@@ -166,6 +176,7 @@ function askQuestion(opts) {
   };
 
   stageEl().querySelectorAll('.opt').forEach((b) => {
+    if (gated && !isFav(b.dataset.id)) { wireDecoy(b); return; }
     b.addEventListener('click', () => {
       if (b.dataset.id === OTHER) {
         box.classList.remove('hide');
@@ -246,12 +257,22 @@ VIEWS.celebrate = function () {
 };
 
 VIEWS.activity = function () {
+  const options = ACTIVITIES.filter((a) => cfg.activities.includes(a.id));
+  const favs = cfg.favorites || [];
+  // Starring everything is the same as starring nothing.
+  const gated = favs.length > 0 && favs.length < options.length + 1;
+
   askQuestion({
     key: 'activity',
     eyebrow: 'Question 02',
     title: 'What do you want<br>to do?',
-    sub: 'Pick one. You can change your mind later, unlike with the last question.',
-    options: ACTIVITIES.filter((a) => cfg.activities.includes(a.id)),
+    sub: gated
+      ? `Pick one. The glowing ones are ${esc(cfg.from)}'s favourites, and — you'll
+         find this out shortly — they are also the only ones that let themselves
+         be pressed.`
+      : 'Pick one. You can change your mind later, unlike with the last question.',
+    options,
+    favorites: gated ? favs : [],
     selected: state.activity,
     placeholder: 'Whatever you actually want to do…',
     otherNote: 'you name it',
@@ -663,6 +684,7 @@ VIEWS.ticket = function () {
 VIEWS.receipt = function () {
   const rows = [
     ['Attempts to say no', state.noAttempts],
+    ...(state.decoyAttempts ? [['Options that ran away', state.decoyAttempts]] : []),
     ['Successful escapes', 0],
     ['Questions answered', 4 + Object.keys(state.answers).length + (state.ride ? 1 : 0)],
     ['Chance of cancellation', '0%'],
@@ -685,7 +707,7 @@ VIEWS.receipt = function () {
     Object.assign(state, {
       stage: 0, queue: BASE_QUEUE.slice(), activity: null, answers: {}, other: {},
       spot: null, dress: null, ride: null, date: null, time: null, terms: [],
-      noAttempts: 0, calMonth: null,
+      noAttempts: 0, decoyAttempts: 0, calMonth: null,
     });
     render();
   });
@@ -708,6 +730,59 @@ function sceneMarkup() {
 
 function sceneCard(cls) {
   return `<div class="scene ${cls || ''}">${sceneMarkup()}</div>`;
+}
+
+/* ---------------- the options she can't have ---------------- */
+
+/* Same joke as the No button, applied to a grid. The tile keeps its cell
+   so the layout never collapses; only the transform moves, away from
+   wherever her finger is, and it stays where it lands. */
+function wireDecoy(node) {
+  let ox = 0;   // where it has fled to so far, tracked by hand because
+  let oy = 0;   // getBoundingClientRect() already includes the transform
+
+  const bump = (px, py) => {
+    state.decoyAttempts++;
+    const n = state.decoyAttempts;
+    const b = node.getBoundingClientRect();
+    const a = px == null
+      ? Math.random() * Math.PI * 2
+      : Math.atan2((b.top + b.height / 2) - py, (b.left + b.width / 2) - px);
+
+    // It keeps fleeing until it runs out of page. Clamp against where the
+    // tile would sit untransformed, or it escapes off the side of the phone.
+    const d = 58 + Math.random() * 46;
+    ox = Math.max(8 - (b.left - ox),
+         Math.min(innerWidth - 8 - (b.right - ox), ox + Math.cos(a) * d));
+    oy = Math.max(-90, Math.min(90, oy + Math.sin(a) * d));
+
+    node.style.transform = `translate(${ox}px, ${oy}px)`
+      + ` rotate(${(Math.random() - 0.5) * 14}deg)`
+      + ` scale(${Math.max(0.72, 1 - n * 0.015)})`;
+    node.style.zIndex = '6';
+
+    const taunt = el('gridTaunt');
+    if (taunt) {
+      taunt.textContent = DECOY_TAUNTS[(n - 1) % DECOY_TAUNTS.length];
+      taunt.classList.remove('pop');
+      void taunt.offsetWidth;
+      taunt.classList.add('pop');
+    }
+  };
+
+  node.addEventListener('pointerenter', (e) => bump(e.clientX, e.clientY));
+  ['pointerdown', 'touchstart', 'mousedown'].forEach((ev) => {
+    node.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const t = e.touches ? e.touches[0] : e;
+      bump(t.clientX, t.clientY);
+    }, { passive: false });
+  });
+
+  // No keyboard route either.
+  node.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+  node.setAttribute('tabindex', '-1');
 }
 
 /* ---------------- the endless No ---------------- */

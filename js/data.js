@@ -724,6 +724,23 @@ const TAUNTS = [
   'this is the longest anyone has tried.',
 ];
 
+/* Thrown by the activities she is not allowed to choose. Same joke as the
+   No button: the option is right there, it simply cannot be caught. */
+const DECOY_TAUNTS = [
+  'not that one.',
+  'he has opinions about this.',
+  'try one of the glowing ones.',
+  'that one is not on offer.',
+  'it moved. weird.',
+  'the glowing ones are the real ones.',
+  'nice try.',
+  'this is a menu, not a democracy.',
+  'you can look at it. that is all.',
+  'the shortlist is the shortlist.',
+  'still no.',
+  'he already decided this part.',
+];
+
 const NO_LABELS = [
   'No', 'No…', 'Hmm', 'Maybe?', 'Probably', 'Nearly', 'Fine', 'Ok yes',
   'Catch me', 'Nope', 'Try again', 'Almost', 'So close', 'Nah', 'Never',

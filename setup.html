@@ -88,12 +88,13 @@
       <div class="setup-section">
         <h3>What she can choose from</h3>
         <p class="instruction">
-          All <b id="actCount">22</b> options are on her list right now.
-          <b>Tap any one to take it off the list.</b> Faded and crossed out means
-          she will never see it.
+          Every option is on her list. <b>Tap once to star it</b>, tap again to
+          <b>take it off her list</b> completely, tap a third time to put it back
+          to normal.
         </p>
+        <p class="instruction" id="favNote" style="margin-top:-6px"></p>
         <div class="toggle-row" id="acts"></div>
-        <button class="btn ghost" id="allOn" style="margin-top:14px">Put all of them back</button>
+        <button class="btn ghost" id="allOn" style="margin-top:14px">Back to normal, all of them</button>
       </div>
 
       <div class="setup-section">
@@ -187,7 +188,12 @@
     const el = (id) => document.getElementById(id);
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const dropped = new Set();   // activities taken off her list
+    /* Three states per activity, cycled by tapping:
+       normal → starred → off her list → normal. Starring anything turns
+       everything else into a decoy on her screen, so the two sets are
+       worth keeping distinct. */
+    const starred = new Set();   // his shortlist — the only pressable ones
+    const dropped = new Set();   // taken off her list entirely
     const blocked = new Set();   // weekdays he can't do
     const faces = { faceMe: '', faceHer: '' };
 
@@ -196,23 +202,50 @@
     el('days').innerHTML = DAY_NAMES.map((d, i) =>
       `<button class="toggle" data-day="${i}">${d}</button>`).join('');
 
+    function paintActs() {
+      el('acts').querySelectorAll('.toggle').forEach((b) => {
+        const id = b.dataset.id;
+        b.classList.toggle('star', starred.has(id));
+        b.classList.toggle('off', dropped.has(id));
+        b.classList.toggle('on', !starred.has(id) && !dropped.has(id));
+      });
+
+      const visible = ACTIVITIES.length - dropped.size;
+      const stars = [...starred].filter((id) => !dropped.has(id)).length;
+      el('favNote').innerHTML = !stars
+        ? `Nothing starred, so she can pick freely from all <b>${visible}</b> of them.`
+        : stars >= visible
+          ? `Everything on her list is starred, which is the same as starring
+             nothing — she can pick freely.`
+          : `The <b>${stars}</b> starred one${stars > 1 ? 's' : ''} glow on her screen, and
+             ${stars > 1 ? 'they are' : 'it is'} the only thing she can actually pick.
+             The other <b>${visible - stars}</b> dodge her finger and refuse to be
+             tapped, exactly like the no button. <b>Something else</b> runs away too,
+             so there is no way round it.`;
+    }
+
     el('acts').addEventListener('click', (e) => {
       const b = e.target.closest('.toggle');
       if (!b) return;
       const id = b.dataset.id;
-      // Always leave her at least one thing to pick.
-      if (!dropped.has(id) && dropped.size >= ACTIVITIES.length - 1) return;
-      dropped.has(id) ? dropped.delete(id) : dropped.add(id);
-      b.classList.toggle('on', !dropped.has(id));
-      b.classList.toggle('off', dropped.has(id));
+
+      if (starred.has(id)) {
+        // Always leave her at least one thing to pick.
+        if (dropped.size >= ACTIVITIES.length - 1) { starred.delete(id); }
+        else { starred.delete(id); dropped.add(id); }
+      } else if (dropped.has(id)) {
+        dropped.delete(id);
+      } else {
+        starred.add(id);
+      }
+      paintActs();
       build();
     });
 
     el('allOn').addEventListener('click', () => {
       dropped.clear();
-      el('acts').querySelectorAll('.toggle').forEach((b) => {
-        b.classList.add('on'); b.classList.remove('off');
-      });
+      starred.clear();
+      paintActs();
       build();
     });
 
@@ -467,6 +500,7 @@
         faceHer: faces.faceHer,
         note: el('note').value.trim(),
         activities: keep,
+        favorites: [...starred].filter((id) => keep.includes(id)),
         rides: rides.filter((r) => r.label.trim()).map((r, i) => ({
           id: r.id || 'r' + (i + 1), emoji: r.emoji || '🚗',
           label: r.label.trim(), note: (r.note || '').trim(), img: r.img || '',
@@ -487,7 +521,6 @@
       const base = location.href.replace(/setup\.html.*$/, 'index.html');
       const url = base + '#c=' + encodeConfig(cfg);
 
-      el('actCount').textContent = keep.length;
       el('dayNote').textContent = blocked.size
         ? `${blocked.size} day${blocked.size > 1 ? 's are' : ' is'} blocked`
         : 'every day is open';
@@ -525,6 +558,7 @@
       setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2400);
     });
 
+    paintActs();
     drawRides();   // calls build()
   </script>
 </body>

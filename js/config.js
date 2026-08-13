@@ -11,6 +11,7 @@ const DEFAULT_CONFIG = {
   faceMe: '',                // circular face crops, made in setup, ~168px
   faceHer: '',
   activities: ACTIVITIES.map((a) => a.id),
+  favorites: [],             // his shortlist. Star any and the rest stop being pressable.
   rides: DEFAULT_RIDES,      // what's parked outside, with a photo of each
   blockedDays: [],           // weekday indices 0=Sun … 6=Sat that he can't do
   horizon: 60,               // how far ahead the calendar goes, in days
@@ -85,6 +86,12 @@ function readConfig() {
   // 'bikes' was bicycles before it became the motorcycle ride. Any link
   // built back then still names it, and would otherwise quietly lose it.
   cfg.activities = cfg.activities.map((id) => (id === 'bikes' ? 'moto' : id));
+
+  // A star on something she can't see would lock her out of everything.
+  if (!Array.isArray(cfg.favorites)) cfg.favorites = [];
+  cfg.favorites = cfg.favorites
+    .map((id) => (id === 'bikes' ? 'moto' : id))
+    .filter((id) => cfg.activities.includes(id));
   if (!Array.isArray(cfg.rides)) cfg.rides = DEFAULT_CONFIG.rides;
   cfg.rides = cfg.rides
     .filter((r) => r && r.label)

@@ -435,6 +435,82 @@ h2 {
   font-weight: 600;
 }
 
+/* ---------- his shortlist, and the decoys ---------- */
+
+/* A gradient ring that breathes. These are the only ones that let
+   themselves be pressed, and they need to look like it from across
+   the room. */
+.opt.fav {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    var(--grad) border-box;
+  animation: fav-glow 2.8s ease-in-out infinite;
+}
+
+.opt.fav::before {
+  content: "★";
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  font-size: 12px;
+  color: var(--pink-soft);
+  text-shadow: 0 0 10px rgba(220, 33, 184, 0.9);
+}
+
+.opt.fav.selected::after { right: 32px; }
+
+@keyframes fav-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 33, 184, 0.0),
+                0 10px 26px -16px rgba(0, 0, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 22px 1px rgba(220, 33, 184, 0.45),
+                0 0 46px 6px rgba(74, 192, 252, 0.16),
+                0 10px 26px -16px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Deliberately still looks pressable. Finding out that it isn't
+   is the whole joke. */
+.opt.decoy {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  touch-action: none;
+}
+
+/* Pinned to the bottom of the viewport: the grid is twenty-two tiles
+   long, so a taunt sitting under it would never be read. */
+.grid-taunt {
+  position: sticky;
+  bottom: 14px;
+  transform: none;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: -6px auto 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(20, 5, 24, 0.86);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 7;
+}
+
+.grid-taunt:empty { display: none; }
+
+.grid-taunt.pop { animation: grid-taunt-pop 0.4s ease; }
+
+@keyframes grid-taunt-pop {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt.fav { animation: none; box-shadow: 0 0 20px 1px rgba(220, 33, 184, 0.4); }
+}
+
 /* ---------- picture cards (the rides) ---------- */
 
 .opt.shot-card { padding: 0; gap: 0; }
@@ -1007,6 +1083,20 @@ h2 {
   color: var(--ink);
   font-weight: 500;
 }
+
+/* Starred: the same breathing ring she'll see on her own screen, so what
+   you pick here looks like what she gets. */
+.toggle.star {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card-2), var(--card-2)) padding-box,
+    var(--grad) border-box;
+  color: var(--ink);
+  font-weight: 500;
+  animation: fav-glow 2.8s ease-in-out infinite;
+}
+
+.toggle.star::before { content: "★ "; color: var(--pink-soft); }
 
 /* Removed from her list: unmistakably struck out. */
 .toggle.off {
