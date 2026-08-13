@@ -767,7 +767,7 @@ h2 {
 .day.blank { pointer-events: none; }
 .day.off { color: var(--faint); opacity: 0.45; pointer-events: none; text-decoration: line-through; }
 .day.weekend { color: var(--blue); }
-.day:hover:not(.off) { background: rgba(255, 255, 255, 0.09); }
+.day:hover:not(.off):not(.selected) { background: rgba(255, 255, 255, 0.09); }
 
 .day.selected {
   background: var(--grad);
@@ -1077,13 +1077,9 @@ h2 {
 .toggle:hover { background: rgba(255, 255, 255, 0.09); color: var(--ink); }
 
 .toggle.on {
-  border-color: transparent;
-  background:
-    linear-gradient(var(--card-2), var(--card-2)) padding-box,
-    var(--grad) border-box;
-  border: 1px solid transparent;
+  border-color: var(--line-2);
+  background: var(--card);
   color: var(--ink);
-  font-weight: 500;
 }
 
 /* Starred: the same breathing ring she'll see on her own screen, so what

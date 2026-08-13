@@ -15,6 +15,7 @@ const DEFAULT_CONFIG = {
   favorites: [],             // his shortlist. Star any and the rest stop being pressable.
   rides: DEFAULT_RIDES,      // what's parked outside, with a photo of each
   blockedDays: [],           // weekday indices 0=Sun … 6=Sat that he can't do
+  okDates: [],               // specific 'YYYY-MM-DD' he CAN do. Non-empty = allowlist.
   horizon: 60,               // how far ahead the calendar goes, in days
   note: '',                  // optional personal line on the ticket
   cc: '972',                 // country code for a number typed as 05x-xxx-xxxx
@@ -94,12 +95,27 @@ function readConfig() {
     .map((id) => (id === 'bikes' ? 'moto' : id))
     .filter((id) => cfg.activities.includes(id));
   if (cfg.lang !== 'he') cfg.lang = 'en';
+
+  /* A hand-picked list of dates goes stale. If every one of them is in
+     the past by the time she opens the link, fall back to the weekday
+     rules rather than handing her a calendar with nothing to press. */
+  if (!Array.isArray(cfg.okDates)) cfg.okDates = [];
+  const todayIso = isoDate(new Date());
+  cfg.okDates = cfg.okDates.filter((d) => typeof d === 'string' && d >= todayIso).sort();
   if (!Array.isArray(cfg.rides)) cfg.rides = DEFAULT_CONFIG.rides;
   cfg.rides = cfg.rides
     .filter((r) => r && r.label)
     .map((r, i) => ({ id: r.id || 'r' + (i + 1), emoji: r.emoji || '🚗',
                       label: r.label, note: r.note || '', img: r.img || '' }));
   return cfg;
+}
+
+/* Local calendar date, not UTC. toISOString() shifts across midnight
+   for anyone east of Greenwich, which is everyone this is built for. */
+function isoDate(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
 }
 
 /* A stable-looking booking reference. Corporate theatre. */

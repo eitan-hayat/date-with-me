@@ -84,6 +84,8 @@ const UI = {
   pickTheDay:     { en: 'Pick the day.',             he: 'בחרי את היום.' },
   dateSub:        { en: 'Greyed-out days are ones {from} genuinely cannot do. Everything else is yours.',
                     he: 'הימים המחוקים הם ימים ש{from} באמת לא יכול. כל השאר שלך.' },
+  dateSubOnly:    { en: 'These are the days {from} is actually free. Everything else is crossed out because it genuinely cannot happen.',
+                    he: 'אלה הימים ש{from} באמת פנוי בהם. כל השאר מחוק כי זה פשוט לא יכול לקרות.' },
   chooseDay:      { en: 'Choose a day',              he: 'בחרי יום' },
 
   /* time */

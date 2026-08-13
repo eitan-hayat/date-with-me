@@ -112,16 +112,34 @@
       </div>
 
       <div class="setup-section">
-        <h3>Days you can't do</h3>
+        <h3>When you're free</h3>
         <p class="instruction">
-          Right now <b id="dayNote">every day is open</b>.
-          <b>Tap a day to block it</b> so it shows up crossed out in her calendar.
+          Two ways to do this. Either leave it open and just block the weekdays
+          you never can, or <b>pick the exact dates you're free</b> and she gets
+          only those.
         </p>
-        <div class="toggle-row" id="days"></div>
-        <div class="field" style="margin-top:18px">
-          <label>How far ahead she can book</label>
-          <input id="horizon" type="number" min="7" max="365" value="60">
-          <div class="hint">In days.</div>
+        <div class="toggle-row" id="availMode" style="margin-bottom:18px">
+          <button class="toggle on" data-mode="open">Any day, except…</button>
+          <button class="toggle" data-mode="only">Only the dates I pick</button>
+        </div>
+
+        <div id="modeOpen">
+          <p class="instruction">
+            Right now <b id="dayNote">every day is open</b>.
+            <b>Tap a day to block it</b> so it shows up crossed out in her calendar.
+          </p>
+          <div class="toggle-row" id="days"></div>
+          <div class="field" style="margin-top:18px">
+            <label>How far ahead she can book</label>
+            <input id="horizon" type="number" min="7" max="365" value="60">
+            <div class="hint">In days.</div>
+          </div>
+        </div>
+
+        <div id="modeOnly" class="hide">
+          <p class="instruction" id="pickNote"></p>
+          <div class="cal" id="pickCal"></div>
+          <button class="btn ghost" id="clearDates">Clear all of them</button>
         </div>
       </div>
 
@@ -282,6 +300,92 @@
       dropped.clear();
       starred.clear();
       paintActs();
+      build();
+    });
+
+    /* ---------- the exact dates he's free ----------
+       Same calendar she gets, so what he taps here is literally what she
+       sees. Blank until he switches mode: an empty list means "use the
+       weekday rules instead", which is the old behaviour. */
+    const okDates = new Set();
+    let availMode = 'open';
+    let pickMonth = null;
+
+    el('availMode').addEventListener('click', (e) => {
+      const b = e.target.closest('.toggle');
+      if (!b) return;
+      availMode = b.dataset.mode;
+      el('availMode').querySelectorAll('.toggle').forEach((x) =>
+        x.classList.toggle('on', x.dataset.mode === availMode));
+      el('modeOpen').classList.toggle('hide', availMode !== 'open');
+      el('modeOnly').classList.toggle('hide', availMode !== 'only');
+      drawPickCal();
+      build();
+    });
+
+    function drawPickCal() {
+      if (availMode !== 'only') return;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (!pickMonth) pickMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      const m = pickMonth;
+      const first = new Date(m.getFullYear(), m.getMonth(), 1);
+      const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+      const prevOk = first > new Date(today.getFullYear(), today.getMonth(), 1);
+      // A year ahead is further than anyone plans a first date.
+      const limit = new Date(today.getFullYear() + 1, today.getMonth(), 1);
+      const nextOk = new Date(m.getFullYear(), m.getMonth() + 1, 1) <= limit;
+
+      let cells = '';
+      for (let i = 0; i < first.getDay(); i++) cells += `<button class="day blank"></button>`;
+      for (let d = 1; d <= days; d++) {
+        const date = new Date(m.getFullYear(), m.getMonth(), d);
+        const iso = isoDate(date);
+        const past = date < today;
+        cells += `<button class="day ${past ? 'off' : ''} ${okDates.has(iso) ? 'selected' : ''}"
+                    data-iso="${iso}">${d}</button>`;
+      }
+
+      el('pickCal').innerHTML = `
+        <div class="cal-head">
+          <button class="cal-nav" id="pPrev" ${prevOk ? '' : 'disabled'}>‹</button>
+          <div class="month">${m.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+          <button class="cal-nav" id="pNext" ${nextOk ? '' : 'disabled'}>›</button>
+        </div>
+        <div class="cal-grid">
+          ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => `<div class="cal-dow">${d}</div>`).join('')}
+          ${cells}
+        </div>`;
+
+      el('pPrev').addEventListener('click', () => {
+        pickMonth = new Date(m.getFullYear(), m.getMonth() - 1, 1);
+        drawPickCal();
+      });
+      el('pNext').addEventListener('click', () => {
+        pickMonth = new Date(m.getFullYear(), m.getMonth() + 1, 1);
+        drawPickCal();
+      });
+      el('pickCal').querySelectorAll('.day[data-iso]').forEach((b) => {
+        if (b.classList.contains('off')) return;
+        b.addEventListener('click', () => {
+          const iso = b.dataset.iso;
+          okDates.has(iso) ? okDates.delete(iso) : okDates.add(iso);
+          drawPickCal();
+          build();
+        });
+      });
+
+      const n = okDates.size;
+      el('pickNote').innerHTML = !n
+        ? `<b>Nothing picked yet.</b> Tap the days you are free. Until you pick at
+           least one, she gets the ordinary calendar with your blocked weekdays.`
+        : `<b>${n} date${n > 1 ? 's' : ''} picked.</b> Those are the only days that
+           will be pressable for her — everything else is crossed out.`;
+    }
+
+    el('clearDates').addEventListener('click', () => {
+      okDates.clear();
+      drawPickCal();
       build();
     });
 
@@ -547,6 +651,15 @@
       const cc = (el('cc').value.replace(/\D/g, '') || '972');
       const phone = el('phone').value.trim();
 
+      const picked = availMode === 'only' ? [...okDates].sort() : [];
+      let reach = Math.min(365, Math.max(7, +el('horizon').value || 60));
+      // A date he offered past the horizon would be invisible to her.
+      if (picked.length) {
+        const last = picked[picked.length - 1].split('-');
+        const days = Math.ceil((new Date(+last[0], +last[1] - 1, +last[2]) - new Date()) / 86400000) + 1;
+        reach = Math.min(400, Math.max(reach, days));
+      }
+
       const cfg = {
         ...DEFAULT_CONFIG,
         lang,
@@ -565,7 +678,8 @@
           label: r.label.trim(), note: (r.note || '').trim(), img: r.img || '',
         })),
         blockedDays: [...blocked].sort(),
-        horizon: Math.min(365, Math.max(7, +el('horizon').value || 60)),
+        okDates: picked,
+        horizon: reach,
       };
 
       // Tell him now whether wa.me will actually accept this number,
@@ -643,6 +757,7 @@
     });
 
     drawActs();    // calls paintActs()
+    drawPickCal();
     drawRides();   // calls build()
   </script>
 </body>

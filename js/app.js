@@ -379,15 +379,33 @@ VIEWS.dress = function () {
   });
 };
 
+/* When he listed specific dates, that list is the whole truth: the
+   weekday rules stop mattering and everything else is closed. */
+const OK_DATES = (cfg.okDates || []).length ? new Set(cfg.okDates) : null;
+
 VIEWS.date = function () {
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  if (!state.calMonth) state.calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  if (!state.calMonth) {
+    // Open on the first month that actually has something in it, or she
+    // lands on a page of crossed-out days and has to go hunting.
+    const first = OK_DATES ? cfg.okDates[0].split('-') : null;
+    state.calMonth = first
+      ? new Date(+first[0], +first[1] - 1, 1)
+      : new Date(today.getFullYear(), today.getMonth(), 1);
+  }
 
   const last = new Date(today);
   last.setDate(last.getDate() + (cfg.horizon || 60));
+  if (OK_DATES) {
+    // Never let the horizon hide a day he explicitly offered.
+    const latest = cfg.okDates[cfg.okDates.length - 1].split('-');
+    const l = new Date(+latest[0], +latest[1] - 1, +latest[2]);
+    if (l > last) last.setTime(l.getTime());
+  }
 
   stageEl().innerHTML = `
-    ${head(t('availability'), esc(t('pickTheDay')), esc(t('dateSub', { from: cfg.from })))}
+    ${head(t('availability'), esc(t('pickTheDay')),
+      esc(OK_DATES ? t('dateSubOnly', { from: cfg.from }) : t('dateSub', { from: cfg.from })))}
     <div class="cal" id="cal"></div>
     <button class="btn primary" id="cont" ${state.date ? '' : 'disabled'}>
       ${state.date ? esc(fmtLong(state.date)) + ' →' : esc(t('chooseDay'))}
@@ -411,7 +429,8 @@ function drawCalendar(today, last) {
   for (let d = 1; d <= days; d++) {
     const date = new Date(m.getFullYear(), m.getMonth(), d);
     const dow = date.getDay();
-    const off = date < today || date > last || (cfg.blockedDays || []).includes(dow);
+    const off = date < today || date > last
+      || (OK_DATES ? !OK_DATES.has(isoDate(date)) : (cfg.blockedDays || []).includes(dow));
     const sel = state.date && date.getTime() === state.date.getTime();
     cells += `<button class="day ${off ? 'off' : ''} ${dow === 5 || dow === 6 ? 'weekend' : ''} ${sel ? 'selected' : ''}"
                 data-d="${d}">${d}</button>`;
