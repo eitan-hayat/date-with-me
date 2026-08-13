@@ -460,7 +460,7 @@ function dateScene(o) {
     <clipPath id="c${uid}"><rect x="0" y="0" width="${W}" height="${PIC}"/></clipPath>
   </defs>
 
-  <rect width="${W}" height="460" fill="#1b0620"/>
+  <rect width="${W}" height="460" fill="#2a1147"/>
   <rect x="0" y="${PIC}" width="${W}" height="${460 - PIC}" fill="url(#f${uid})" opacity="0.22"/>
   <g clip-path="url(#c${uid})">
     <rect width="${W}" height="${PIC}" fill="url(#s${uid})"/>

@@ -583,8 +583,8 @@ function buildRecs(activity, answers, city) {
         italian: 'italian', sushi: 'sushi', burgers: 'burger', israeli: 'hummus',
         brunch: 'brunch', steak: 'steak', vegan: 'vegan',
       }[cuisine] || '';
-      pushIdea(`${words} delivery near us`.trim(), 'The lazy option. The correct option.', `${words} delivery ${city}`);
-      pushWeb(`Cook it ourselves instead`, 'Ambitious. I support it. Loosely.', `easy ${words} recipe`);
+      pushIdea(`${words} delivery near us`.trim(), rt('homeDelivery') || 'The lazy option. The correct option.', `${words} delivery ${city}`);
+      pushWeb(rt('cookTitle') || `Cook it ourselves instead`, rt('cookInstead') || 'Ambitious. I support it. Loosely.', `easy ${words} recipe`);
       return out;
     }
 
@@ -601,8 +601,8 @@ function buildRecs(activity, answers, city) {
         vegan: 'vegan restaurant', any: 'best restaurants',
       }[cuisine] || 'restaurant';
       const mod = { sunset: 'with a sunset view', roof: 'rooftop', hole: 'hole in the wall', fancy: 'fine dining' }[vibe] || '';
-      pushIdea(`${words} ${mod}`.trim(), `Live results around ${city}. Tap to browse.`, `${words} ${mod} ${city}`);
-      pushIdea(`the highest rated ${words} in ${city}`, 'Sorted by people who eat out too much.', `best ${words} ${city}`);
+      pushIdea(`${words} ${mod}`.trim(), rt('liveResults', { city }) || `Live results around ${city}. Tap to browse.`, `${words} ${mod} ${city}`);
+      pushIdea(`the highest rated ${words} in ${city}`, rt('topRated') || 'Sorted by people who eat out too much.', `best ${words} ${city}`);
     }
   }
 
@@ -614,7 +614,7 @@ function buildRecs(activity, answers, city) {
       neve: ['Neve Tzedek', 'Small streets, expensive windows, good ice cream.'],
     }[answers.where];
     if (map) push(map[0], map[1], `${map[0]} ${city}`);
-    pushIdea('Ice cream on the way', 'Mandatory checkpoint.', `ice cream ${city}`);
+    pushIdea('Ice cream on the way', rt('iceOnWay') || 'Mandatory checkpoint.', `ice cream ${city}`);
   }
 
   if (activity === 'moto') {
@@ -626,11 +626,13 @@ function buildRecs(activity, answers, city) {
       coast:  ['The old coast road north',            'Slow, salty, no hurry.'],
       follow: ['Motorcycle roads near Tel Aviv',      'Anything with a bend in it.'],
     }[answers.where] || ['Motorcycle roads near Tel Aviv', 'Anything with a bend in it.'];
-    pushIdea(route, why, `${route} Israel`);
-    if (answers.stop === 'coffee') pushIdea('Coffee with a view', 'Somewhere we can park where we can see the bike.', `cafe with a view ${city}`);
-    if (answers.stop === 'food')   pushIdea('Somewhere to eat on the way', 'Riding hungry is how arguments start.', `restaurant near route ${city}`);
-    if (answers.stop === 'ice')    pushIdea('Ice cream stop', 'Earned it.', `ice cream ${city}`);
-    pushWeb('The helmet situation', "Second helmet, and a jacket that fits you.", 'motorcycle helmet for passenger');
+    // Road numbers are the same in both languages; the reason to ride them is not.
+    const heRoute = LANG === 'he' ? HE_ROUTES[answers.where] : null;
+    pushIdea(heRoute ? heRoute[0] : route, heRoute ? heRoute[1] : why, `${route} Israel`);
+    if (answers.stop === 'coffee') pushIdea(rt('coffeeView') || 'Coffee with a view', rt('coffeeViewNote') || 'Somewhere we can park where we can see the bike.', `cafe with a view ${city}`);
+    if (answers.stop === 'food')   pushIdea(rt('eatOnWay') || 'Somewhere to eat on the way', rt('eatOnWayNote') || 'Riding hungry is how arguments start.', `restaurant near route ${city}`);
+    if (answers.stop === 'ice')    pushIdea(rt('iceStop') ? 'Ice cream stop' : 'Ice cream stop', rt('iceStop') || 'Earned it.', `ice cream ${city}`);
+    pushWeb(rt('helmet') || 'The helmet situation', rt('helmetNote') || "Second helmet, and a jacket that fits you.", 'motorcycle helmet for passenger');
   }
 
   if (activity === 'pool') {
@@ -638,8 +640,8 @@ function buildRecs(activity, answers, city) {
       hotel: 'hotel day pass pool', roof: 'rooftop pool bar',
       sea: 'best beach', sneak: 'public pool',
     }[answers.where] || 'pool';
-    pushIdea('Where to swim', 'Check opening hours, they lie sometimes.', `${map} ${city}`);
-    if (answers.plan === 'drink') pushIdea('Cocktails nearby', 'For after, or during.', `cocktail bar ${city}`);
+    pushIdea(rt('whereSwim') || 'Where to swim', rt('whereSwimNote') || 'Check opening hours, they lie sometimes.', `${map} ${city}`);
+    if (answers.plan === 'drink') pushIdea(rt('cocktails') || 'Cocktails nearby', rt('cocktailsNote') || 'For after, or during.', `cocktail bar ${city}`);
   }
 
   if (activity === 'trip') {
@@ -649,26 +651,26 @@ function buildRecs(activity, answers, city) {
       coast: 'best beaches northern coast Israel',
       jlm: 'things to do Jerusalem',
     }[answers.direction];
-    pushIdea('Where we go', 'Pick two stops, not six. We always overplan.', map);
-    if (answers.length !== 'day') pushIdea('Somewhere to sleep', 'Book it before she changes her mind.', `boutique hotel ${answers.direction === 'north' ? 'northern Israel' : 'Israel'}`);
+    pushIdea(rt('whereWeGo') || 'Where we go', rt('whereWeGoNote') || 'Pick two stops, not six. We always overplan.', map);
+    if (answers.length !== 'day') pushIdea(rt('sleep') || 'Somewhere to sleep', rt('sleepNote') || 'Book it before she changes her mind.', `boutique hotel ${answers.direction === 'north' ? 'northern Israel' : 'Israel'}`);
   }
 
   if (activity === 'italy') {
     const cityIT = { rome: 'Rome', florence: 'Florence', venice: 'Venice', amalfi: 'Amalfi Coast', milan: 'Milan', all: 'Italy' }[answers.city] || 'Italy';
     const focus = { eat: 'best restaurants', wine: 'wine tasting', vespa: 'vespa tour', art: 'museums' }[answers.focus] || 'things to do';
-    pushIdea(`${focus} in ${cityIT}`, 'Research phase. Highly enjoyable, mildly dangerous.', `${focus} ${cityIT}`);
-    pushWeb(`Flights to ${cityIT}`, 'This is genuinely how it starts.', `flights to ${cityIT}`);
+    pushIdea(`${focus} in ${cityIT}`, rt('research') || 'Research phase. Highly enjoyable, mildly dangerous.', `${focus} ${cityIT}`);
+    pushWeb(rt('flights', { city: cityIT }) || `Flights to ${cityIT}`, rt('flightsNote') || 'This is genuinely how it starts.', `flights to ${cityIT}`);
   }
 
   if (activity === 'movie') {
-    if (answers.where === 'cinema') pushIdea('Cinemas nearby', 'Check what is actually playing.', `cinema ${city}`);
-    if (answers.snacks && answers.where !== 'cinema') pushIdea('Snack run', 'Two bags minimum.', `supermarket ${city}`);
+    if (answers.where === 'cinema') pushIdea(rt('cinemas') || 'Cinemas nearby', rt('cinemasNote') || 'Check what is actually playing.', `cinema ${city}`);
+    if (answers.snacks && answers.where !== 'cinema') pushIdea(rt('snackRun') || 'Snack run', rt('snackRunNote') || 'Two bags minimum.', `supermarket ${city}`);
   }
 
   if (activity === 'cook') {
     const dish = { pasta: 'fresh pasta', sushi: 'sushi ingredients', shakshuka: 'shakshuka', steak: 'steak', dessert: 'dessert' }[answers.dish] || 'dinner';
-    pushIdea('Where we shop', 'Market beats supermarket. Always.', `market ${city}`);
-    pushWeb(`${cap(dish)} recipes`, 'One of us reads it. One of us ignores it.', `${dish} recipe`);
+    pushIdea(rt('whereWeShop') || 'Where we shop', rt('whereWeShopNote') || 'Market beats supermarket. Always.', `market ${city}`);
+    pushWeb(rt('recipes', { dish: cap(dish) }) || `${cap(dish)} recipes`, rt('recipesNote') || 'One of us reads it. One of us ignores it.', `${dish} recipe`);
   }
 
   const SEARCHES = {
@@ -687,15 +689,15 @@ function buildRecs(activity, answers, city) {
   if (SEARCHES[activity]) {
     const [term, note] = SEARCHES[activity];
     pushIdea(`${term} in ${city}`, note, `${term} ${city}`);
-    if (activity === 'drinks' && answers.kind === 'wine') pushIdea(`wine bars in ${city}`, 'Somewhere we can hear each other.', `wine bar ${city}`);
-    if (activity === 'bowling' && answers.after === 'food') pushIdea('Food nearby', 'For the loser to pay for.', `restaurants ${city}`);
-    if (activity === 'picnic') pushIdea('Where to buy the food', 'Market first, park second.', `market ${city}`);
-    if (activity === 'beach' && answers.bring === 'melon') pushIdea('Watermelon', 'Non-negotiable.', `fruit market ${city}`);
+    if (activity === 'drinks' && answers.kind === 'wine') pushIdea(rt('wineBars', { city }) || `wine bars in ${city}`, rt('wineBarsNote') || 'Somewhere we can hear each other.', `wine bar ${city}`);
+    if (activity === 'bowling' && answers.after === 'food') pushIdea(rt('foodNearby') || 'Food nearby', rt('foodNearbyNote') || 'For the loser to pay for.', `restaurants ${city}`);
+    if (activity === 'picnic') pushIdea(rt('buyFood') || 'Where to buy the food', rt('buyFoodNote') || 'Market first, park second.', `market ${city}`);
+    if (activity === 'beach' && answers.bring === 'melon') pushIdea(rt('watermelon') || 'Watermelon', rt('watermelonNote') || 'Non-negotiable.', `fruit market ${city}`);
   }
 
   if (activity === 'shopping') {
     const map = { mall: 'shopping mall', vintage: 'vintage clothing store', market: 'market', bed: 'coffee' }[answers.where] || 'shopping';
-    pushIdea('Where to go', 'Bring patience and a water bottle.', `${map} ${city}`);
+    pushIdea(rt('whereToGo') || 'Where to go', rt('whereToGoNote') || 'Bring patience and a water bottle.', `${map} ${city}`);
   }
 
   return out.slice(0, 5);

@@ -13,6 +13,14 @@ if (!/[#&]c=/.test(location.hash) && !/[?&]demo/.test(location.search)) {
 const cfg = readConfig();
 const OTHER = '__other';
 
+/* Language first: every view below reads through t(), and Hebrew needs
+   the document flipped before the first paint. */
+applyLang(cfg.lang);
+if (isRTL()) {
+  document.documentElement.lang = 'he';
+  document.documentElement.dir = 'rtl';
+}
+
 const RIDES = (cfg.rides || []).filter((r) => r && r.label);
 
 /* 'ride' only exists if he actually listed something to pick her up in. */
@@ -77,7 +85,7 @@ function setProgress() {
   const shown = state.stage > 0 && id !== 'receipt' && id !== 'party';
   const pct = shown ? state.stage / (state.queue.length - 1) : 0;
   el('bar').style.transform = `scaleX(${pct})`;
-  el('step').textContent = shown ? `Step ${state.stage} of ${state.queue.length - 1}` : '';
+  el('step').textContent = shown ? t('stepOf', { a: state.stage, b: state.queue.length - 1 }) : '';
 }
 
 function render() {
@@ -105,7 +113,7 @@ function head(eyebrow, title, sub) {
 
 function backLink() {
   return state.stage > 3
-    ? `<button class="btn ghost" id="backBtn" style="margin-top:6px">← back</button>`
+    ? `<button class="btn ghost" id="backBtn" style="margin-top:6px">${esc(t('back'))}</button>`
     : '';
 }
 
@@ -118,12 +126,12 @@ function wireBack() {
    Whatever she types becomes the answer and prints on the ticket. */
 function askQuestion(opts) {
   const { key, eyebrow, title, sub, options, selected, onPick } = opts;
-  const placeholder = opts.placeholder || 'Type it here…';
+  const placeholder = opts.placeholder || t('typeItHere');
   const inputType = opts.inputType || 'text';
   const isOther = selected === OTHER;
 
   const tiles = [...options, {
-    id: OTHER, emoji: '✏️', label: 'Something else', note: opts.otherNote || 'your idea',
+    id: OTHER, emoji: '✏️', label: t('somethingElse'), note: opts.otherNote || t('yourIdea'),
   }];
 
   /* His shortlist. Star anything and the rest become decoys: they still
@@ -161,7 +169,7 @@ function askQuestion(opts) {
     <div class="other-box ${isOther ? '' : 'hide'}" id="otherBox">
       <input id="otherInput" type="${inputType}" placeholder="${esc(placeholder)}"
              value="${esc(state.other[key] || '')}" autocomplete="off">
-      <button class="btn primary" id="otherGo">That's the one</button>
+      <button class="btn primary" id="otherGo">${esc(t('thatsTheOne'))}</button>
     </div>
     ${backLink()}`;
 
@@ -196,7 +204,7 @@ function askQuestion(opts) {
 
 /* Turn a stored answer back into words for the ticket. */
 function resolveLabel(key, options, value) {
-  if (value === OTHER) return state.other[key] || 'Her idea';
+  if (value === OTHER) return state.other[key] || t('somethingElse');
   const o = (options || []).find((x) => x.id === value);
   return o ? o.label : '';
 }
@@ -213,11 +221,11 @@ VIEWS.envelope = function () {
       <div class="seal">${esc((cfg.from[0] || 'E').toUpperCase())}</div>
     </div>
     <div style="text-align:center">
-      <div class="eyebrow" style="margin-bottom:10px">Reservation system · ${esc(REF)}</div>
-      <h1>You have one<br>unopened invitation.</h1>
-      <p class="sub" style="margin:0 auto 26px">For ${esc(cfg.to)}. From ${esc(cfg.from)}.</p>
-      <button class="btn primary" id="openBtn">Open it</button>
-      <div class="tiny" style="margin-top:14px">Tap the envelope. Nothing bad happens.</div>
+      <div class="eyebrow" style="margin-bottom:10px">${esc(t('resSystem'))} · ${esc(REF)}</div>
+      <h1>${t('envTitle')}</h1>
+      <p class="sub" style="margin:0 auto 26px">${esc(t('envFor', { to: cfg.to, from: cfg.from }))}</p>
+      <button class="btn primary" id="openBtn">${esc(t('envOpen'))}</button>
+      <div class="tiny" style="margin-top:14px">${esc(t('envTap'))}</div>
     </div>`;
   el('openBtn').addEventListener('click', next);
   el('env').addEventListener('click', next);
@@ -225,12 +233,12 @@ VIEWS.envelope = function () {
 
 VIEWS.ask = function () {
   stageEl().innerHTML = `
-    <div class="eyebrow">Question 01 · required</div>
-    <h1>${esc(cfg.to)}, do you want<br>to go on a date<br>with me?</h1>
-    <p class="sub">Please select one option. Both are equally valid.</p>
+    <div class="eyebrow">${esc(t('q01'))}</div>
+    <h1>${t('askTitle', { to: esc(cfg.to) })}</h1>
+    <p class="sub">${esc(t('askSub'))}</p>
     <div class="duel" id="duel">
-      <button class="btn primary" id="yesBtn">Yes</button>
-      <button class="btn" id="noBtn">No</button>
+      <button class="btn primary" id="yesBtn">${esc(t('yes'))}</button>
+      <button class="btn" id="noBtn">${esc(NO_LABELS[0])}</button>
       <div class="taunt" id="taunt"></div>
     </div>`;
 
@@ -243,14 +251,14 @@ VIEWS.celebrate = function () {
     <div class="party">
       ${sceneCard('pop pop-1')}
       <div class="big-emoji pop pop-1">🎉</div>
-      <div class="eyebrow pop pop-2" style="margin-bottom:10px">Answer recorded</div>
-      <h1 class="pop pop-2" style="font-size:clamp(38px,12vw,58px)">I knew it.</h1>
+      <div class="eyebrow pop pop-2" style="margin-bottom:10px">${esc(t('answerRecorded'))}</div>
+      <h1 class="pop pop-2" style="font-size:clamp(38px,12vw,58px)">${esc(t('knewIt'))}</h1>
       <p class="sub pop pop-3" style="margin:0 auto 28px">
-        ${state.noAttempts > 0
-          ? `You went for the other button ${state.noAttempts} time${state.noAttempts > 1 ? 's' : ''}. It was never going to work.`
-          : 'No hesitation. Respect.'}
+        ${esc(state.noAttempts > 0
+          ? t('triedOther', { n: state.noAttempts, s: state.noAttempts > 1 ? 's' : '' })
+          : t('noHesitation'))}
       </p>
-      <button class="btn primary pop pop-4" id="go">Now let's plan it →</button>
+      <button class="btn primary pop pop-4" id="go">${esc(t('planIt'))}</button>
     </div>`;
   el('go').addEventListener('click', next);
   celebrate(3);
@@ -264,13 +272,9 @@ VIEWS.activity = function () {
 
   askQuestion({
     key: 'activity',
-    eyebrow: 'Question 02',
-    title: 'What do you want<br>to do?',
-    sub: gated
-      ? `Pick one. The glowing ones are ${esc(cfg.from)}'s favourites, and — you'll
-         find this out shortly — they are also the only ones that let themselves
-         be pressed.`
-      : 'Pick one. You can change your mind later, unlike with the last question.',
+    eyebrow: t('q02'),
+    title: t('actTitle'),
+    sub: gated ? esc(t('actSubGated', { from: cfg.from })) : esc(t('actSub')),
     options,
     favorites: gated ? favs : [],
     selected: state.activity,
@@ -318,27 +322,26 @@ VIEWS.recs = function () {
   if (state.spot && !recs.some((r) => r.place && r.name === state.spot)) state.spot = null;
 
   stageEl().innerHTML = `
-    ${head('Suggestions', 'I did some homework.', anyPlace
-      ? 'Tap a place to lock it in, or skip it and we improvise. Every card opens in Maps.'
-      : 'Nothing to decide here, just things to look at. Every card opens in Maps.')}
+    ${head(t('suggestions'), esc(t('homework')),
+      esc(anyPlace ? t('recsSubPlaces') : t('recsSubIdeas')))}
     <div id="recList">${recs.map((r, i) => `
       <div class="rec ${r.place && state.spot === r.name ? 'selected' : ''}" data-i="${i}">
         <div class="rec-main">
           <div class="rec-name">${esc(r.name)}</div>
           <div class="rec-note">${esc(r.note)}</div>
         </div>
-        <a class="maps" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>
+        <a class="maps" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(t('openMaps'))}</a>
       </div>`).join('')}
     </div>
     <div class="other-box" style="margin-top:14px">
-      <input id="ownSpot" type="text" placeholder="Somewhere else? Name it…"
+      <input id="ownSpot" type="text" placeholder="${esc(t('somewhereElse'))}"
              value="${esc(state.spot && !recs.some((r) => r.name === state.spot) ? state.spot : '')}">
-      <button class="btn primary" id="ownGo">Use this</button>
+      <button class="btn primary" id="ownGo">${esc(t('useThis'))}</button>
     </div>
-    <button class="btn primary" id="cont" style="margin-top:16px">Continue</button>
+    <button class="btn primary" id="cont" style="margin-top:16px">${esc(t('continue'))}</button>
     <div class="btn-row">
-      ${state.stage > 3 ? `<button class="btn ghost" id="backBtn">← back</button>` : ''}
-      ${anyPlace ? `<button class="btn ghost" id="skip">Surprise me instead</button>` : ''}
+      ${state.stage > 3 ? `<button class="btn ghost" id="backBtn">${esc(t('back'))}</button>` : ''}
+      ${anyPlace ? `<button class="btn ghost" id="skip">${esc(t('surpriseMe'))}</button>` : ''}
     </div>`;
 
   stageEl().querySelectorAll('.rec').forEach((card) => {
@@ -367,11 +370,11 @@ VIEWS.recs = function () {
 VIEWS.dress = function () {
   askQuestion({
     key: 'dress',
-    eyebrow: 'Dress code',
-    title: 'How are we<br>showing up?',
+    eyebrow: t('dressCode'),
+    title: t('dressTitle'),
     options: DRESS,
     selected: state.dress,
-    placeholder: 'Describe the outfit…',
+    placeholder: t('dressPh'),
     onPick: (id) => { state.dress = id; next(); },
   });
 };
@@ -384,11 +387,10 @@ VIEWS.date = function () {
   last.setDate(last.getDate() + (cfg.horizon || 60));
 
   stageEl().innerHTML = `
-    ${head('Availability', 'Pick the day.',
-      `Greyed-out days are ones ${esc(cfg.from)} genuinely cannot do. Everything else is yours.`)}
+    ${head(t('availability'), esc(t('pickTheDay')), esc(t('dateSub', { from: cfg.from })))}
     <div class="cal" id="cal"></div>
     <button class="btn primary" id="cont" ${state.date ? '' : 'disabled'}>
-      ${state.date ? esc(fmtLong(state.date)) + ' →' : 'Choose a day'}
+      ${state.date ? esc(fmtLong(state.date)) + ' →' : esc(t('chooseDay'))}
     </button>
     ${backLink()}`;
 
@@ -417,12 +419,12 @@ function drawCalendar(today, last) {
 
   el('cal').innerHTML = `
     <div class="cal-head">
-      <button class="cal-nav" id="prevM" ${prevOk ? '' : 'disabled'}>‹</button>
-      <div class="month">${m.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
-      <button class="cal-nav" id="nextM" ${nextOk ? '' : 'disabled'}>›</button>
+      <button class="cal-nav" id="prevM" ${prevOk ? '' : 'disabled'}>${isRTL() ? '›' : '‹'}</button>
+      <div class="month">${m.toLocaleDateString(LOCALE[LANG], { month: 'long', year: 'numeric' })}</div>
+      <button class="cal-nav" id="nextM" ${nextOk ? '' : 'disabled'}>${isRTL() ? '‹' : '›'}</button>
     </div>
     <div class="cal-grid">
-      ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => `<div class="cal-dow">${d}</div>`).join('')}
+      ${DOW[LANG].map((d) => `<div class="cal-dow">${d}</div>`).join('')}
       ${cells}
     </div>`;
 
@@ -467,12 +469,19 @@ function sunsetTimes(sunset) {
     const t = base + off;
     const id = String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
     const d = t - mins;
+    const N = LANG === 'he' ? HE_SUNSET_NOTES : {
+      early: 'early, while it is still bright',
+      just: 'just before it drops. this one.',
+      at: 'right as it goes down',
+      after: 'just after, when the sky goes blue',
+      dark: 'after dark, straight to dinner',
+    };
     let emoji = '🌇', note;
-    if (d <= -40) { emoji = '☀️'; note = 'early, while it is still bright'; }
-    else if (d <= -10) { emoji = '🌅'; note = 'just before it drops. this one.'; }
-    else if (d <= 10) { emoji = '🌇'; note = 'right as it goes down'; }
-    else if (d <= 40) { emoji = '🌆'; note = 'just after, when the sky goes blue'; }
-    else { emoji = '🌙'; note = 'after dark, straight to dinner'; }
+    if (d <= -40) { emoji = '☀️'; note = N.early; }
+    else if (d <= -10) { emoji = '🌅'; note = N.just; }
+    else if (d <= 10) { emoji = '🌇'; note = N.at; }
+    else if (d <= 40) { emoji = '🌆'; note = N.after; }
+    else { emoji = '🌙'; note = N.dark; }
     return { id, emoji, label: id, note };
   });
 }
@@ -483,16 +492,16 @@ VIEWS.time = function () {
 
   askQuestion({
     key: 'time',
-    eyebrow: sunset ? `Sunset is around ${hhmm(sunset)}` : fmtLong(state.date),
-    title: sunset ? 'So what time do<br>we meet?' : 'And what time?',
+    eyebrow: sunset ? t('sunsetAround', { t: hhmm(sunset) }) : fmtLong(state.date),
+    title: sunset ? t('sunsetTitle') : t('andWhatTime'),
     sub: sunset
-      ? `You asked for sunset, so these are built around it. On ${fmtShort(state.date)} the sun goes down at about ${hhmm(sunset)} in ${esc(cfg.city)}.`
+      ? esc(t('sunsetSub', { d: fmtShort(state.date), t: hhmm(sunset), city: cfg.city }))
       : '',
     options,
     selected: state.time,
     inputType: 'time',
-    placeholder: 'Pick a time',
-    otherNote: 'a different hour',
+    placeholder: t('pickATime'),
+    otherNote: t('differentHour'),
     onPick: (id) => { state.time = id; next(); },
   });
 };
@@ -501,14 +510,14 @@ VIEWS.time = function () {
 VIEWS.ride = function () {
   askQuestion({
     key: 'ride',
-    eyebrow: 'The pickup',
-    title: 'How do you want<br>me to pick you up?',
-    sub: `Everything here is parked and insured. Photos are real, ${esc(cfg.from)} is not exaggerating.`,
+    eyebrow: t('thePickup'),
+    title: t('rideTitle'),
+    sub: esc(t('rideSub', { from: cfg.from })),
     options: RIDES,
     selected: state.ride,
     gallery: true,
-    placeholder: "I'll make my own way there…",
-    otherNote: 'or tell me where to meet you',
+    placeholder: t('ridePh'),
+    otherNote: t('rideOther'),
     onPick: (id) => { state.ride = id; next(); },
   });
 };
@@ -517,7 +526,7 @@ VIEWS.terms = function () {
   if (!state.terms.length) state.terms = TERMS.map((t) => !!t.locked);
 
   stageEl().innerHTML = `
-    ${head('Terms & conditions', 'The fine print.', 'Standard stuff. Please read carefully.')}
+    ${head(t('termsEyebrow'), esc(t('finePrint')), esc(t('termsSub')))}
     <div class="terms">
       ${TERMS.map((t, i) => `
         <div class="term ${state.terms[i] ? 'on' : ''} ${t.locked ? 'locked' : ''}" data-i="${i}">
@@ -525,7 +534,7 @@ VIEWS.terms = function () {
           <div>${esc(t.text)}${t.note ? `<div class="tiny" style="margin-top:3px">${esc(t.note)}</div>` : ''}</div>
         </div>`).join('')}
     </div>
-    <button class="btn primary" id="cont">I accept</button>
+    <button class="btn primary" id="cont">${esc(t('iAccept'))}</button>
     ${backLink()}`;
 
   stageEl().querySelectorAll('.term').forEach((row) => {
@@ -561,21 +570,20 @@ VIEWS.party = function () {
   stageEl().innerHTML = `
     <div class="party">
       <div class="big-emoji pop pop-1">🎊</div>
-      <div class="eyebrow pop pop-1">Booking confirmed · ${esc(REF)}</div>
-      <h1 class="party-title pop pop-2">IT'S<br>OFFICIAL.</h1>
+      <div class="eyebrow pop pop-1">${esc(t('bookingConfirmed'))} · ${esc(REF)}</div>
+      <h1 class="party-title pop pop-2">${t('itsOfficial')}</h1>
       <div class="party-lines">
         <div class="party-line pop pop-3">${esc(fmtLong(state.date))} · ${esc(state.time)}</div>
         <div class="party-line pop pop-4">${esc(summaryTitle())}</div>
         <div class="party-line pop pop-5">${esc(state.spot || cityFallback())}</div>
-        ${rideLabel() ? `<div class="party-line pop pop-5">Pickup · ${esc(rideLabel())}</div>` : ''}
+        ${rideLabel() ? `<div class="party-line pop pop-5">${esc(t('pickupLine', { x: rideLabel() }))}</div>` : ''}
       </div>
       ${sceneCard('pop pop-5')}
-      <button class="btn ghost" id="saveScene" style="margin-bottom:20px">Save the picture</button>
+      <button class="btn ghost" id="saveScene" style="margin-bottom:20px">${esc(t('savePicture'))}</button>
       <p class="sub pop pop-6" style="margin:26px auto 26px">
-        ${esc(cfg.to)} said yes to ${esc(cfg.from)}, picked the plan, and put it in the diary.
-        There is no undo button. There was never even a no button.
+        ${esc(t('partySub', { to: cfg.to, from: cfg.from }))}
       </p>
-      <button class="btn primary pop pop-7" id="go">One last thing →</button>
+      <button class="btn primary pop pop-7" id="go">${esc(t('oneLastThing'))}</button>
     </div>`;
 
   el('go').addEventListener('click', next);
@@ -586,19 +594,17 @@ VIEWS.party = function () {
 
 VIEWS.contact = function () {
   stageEl().innerHTML = `
-    ${head('Almost done', 'Where do I send<br>the invite?',
-      `It's booked. Now I just need somewhere to send it so it lands in your calendar
-       and I stop asking whether you remembered.`)}
+    ${head(t('almostDone'), t('contactTitle'), esc(t('contactSub')))}
     <div class="field">
-      <label>Your phone</label>
+      <label>${esc(t('yourPhone'))}</label>
       <input id="ph" type="tel" inputmode="tel" placeholder="05x-xxx-xxxx" value="${esc(state.contact.phone)}">
     </div>
     <div class="field">
-      <label>Your email, for the calendar invite</label>
+      <label>${esc(t('yourEmail'))}</label>
       <input id="em" type="email" inputmode="email" placeholder="you@email.com" value="${esc(state.contact.email)}">
-      <div class="hint">Optional. Nothing is stored anywhere, it goes straight to ${esc(cfg.from)}.</div>
+      <div class="hint">${esc(t('emailHint', { from: cfg.from }))}</div>
     </div>
-    <button class="btn primary" id="cont">Show me the ticket →</button>
+    <button class="btn primary" id="cont">${esc(t('showTicket'))}</button>
     ${backLink()}`;
 
   el('cont').addEventListener('click', () => {
@@ -617,44 +623,46 @@ VIEWS.ticket = function () {
   stageEl().innerHTML = `
     <div class="ticket">
       <div class="ticket-top">
-        <div class="ticket-brand"><span>Confirmed reservation</span><span>${esc(REF)}</span></div>
-        <h2>It's a date.</h2>
+        <div class="ticket-brand"><span>${esc(t('confirmedRes'))}</span><span>${esc(REF)}</span></div>
+        <h2>${esc(t('itsADate'))}</h2>
         <div class="who">${esc(cfg.from)} &nbsp;+&nbsp; ${esc(cfg.to)}</div>
         <div class="ticket-rows">
-          <div class="trow"><div class="k">Date</div><div class="v">${esc(fmtShort(state.date))}</div></div>
-          <div class="trow"><div class="k">Time</div><div class="v">${esc(state.time)}</div></div>
-          <div class="trow wide"><div class="k">Plan</div><div class="v">${esc(what)}</div></div>
-          <div class="trow"><div class="k">Where</div><div class="v">${esc(where)}</div></div>
-          <div class="trow"><div class="k">Dress code</div><div class="v">${esc(dressLabel())}</div></div>
-          ${rideLabel() ? `<div class="trow wide"><div class="k">Pickup</div><div class="v">${esc(rideLabel())}</div></div>` : ''}
-          ${cfg.note ? `<div class="trow wide"><div class="k">Note</div><div class="v" style="font-weight:400">${esc(cfg.note)}</div></div>` : ''}
+          <div class="trow"><div class="k">${esc(t('kDate'))}</div><div class="v">${esc(fmtShort(state.date))}</div></div>
+          <div class="trow"><div class="k">${esc(t('kTime'))}</div><div class="v">${esc(state.time)}</div></div>
+          <div class="trow wide"><div class="k">${esc(t('kPlan'))}</div><div class="v">${esc(what)}</div></div>
+          <div class="trow"><div class="k">${esc(t('kWhere'))}</div><div class="v">${esc(where)}</div></div>
+          <div class="trow"><div class="k">${esc(t('kDress'))}</div><div class="v">${esc(dressLabel())}</div></div>
+          ${rideLabel() ? `<div class="trow wide"><div class="k">${esc(t('kPickup'))}</div><div class="v">${esc(rideLabel())}</div></div>` : ''}
+          ${cfg.note ? `<div class="trow wide"><div class="k">${esc(t('kNote'))}</div><div class="v" style="font-weight:400">${esc(cfg.note)}</div></div>` : ''}
         </div>
       </div>
       <div class="perf"></div>
       <div class="ticket-bottom">
         <div class="barcode"></div>
-        <div class="ref-no">NO&nbsp;REFUNDS</div>
+        <div class="ref-no">${t('noRefunds')}</div>
       </div>
     </div>
 
     ${sceneCard()}
 
-    <!-- A real link, not window.open(): popup blockers and in-app browsers
-         swallow the scripted version, and then nothing happens at all. -->
-    <a class="btn primary" id="tellHim" href="${esc(waLink())}" target="_blank" rel="noopener"
-       style="text-decoration:none;text-align:center;display:block">Send it to ${esc(cfg.from)}</a>
+    <!-- A real link, and deliberately not target="_blank". She will almost
+         certainly open this invitation inside WhatsApp's own in-app browser,
+         where _blank is a no-op and the button appears to do nothing. Same
+         tab always works; wa.me shows its own "continue to chat" page. -->
+    <a class="btn primary" id="tellHim" href="${esc(waLink())}"
+       style="text-decoration:none;text-align:center;display:block">${esc(t('sendItTo', { from: cfg.from }))}</a>
     <div class="btn-row">
-      <button class="btn ghost" id="ics">Add to calendar</button>
+      <button class="btn ghost" id="ics">${esc(t('addToCalendar'))}</button>
       <a class="btn ghost" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
-         href="${esc(gcalLink())}">Google Calendar</a>
+         href="${esc(gcalLink())}">${esc(t('googleCalendar'))}</a>
     </div>
     <div class="tiny" style="text-align:center;margin-top:12px">
-      WhatsApp didn't open? <a href="#" id="copyMsg" style="color:var(--pink-soft)">Copy the message instead</a>
+      ${esc(t('waDidntOpen'))} <a href="#" id="copyMsg" style="color:var(--pink-soft)">${esc(t('copyInstead'))}</a>
     </div>
     <div class="tiny" style="text-align:center;margin-top:14px">
-      Countdown: <span id="cd">—</span>
+      ${esc(t('countdown'))} <span id="cd">—</span>
     </div>
-    <button class="btn ghost" id="cont" style="margin-top:18px">One more thing →</button>`;
+    <button class="btn ghost" id="cont" style="margin-top:18px">${esc(t('oneMoreThing'))}</button>`;
 
   // Rebuild the href at click time — she may have gone back and changed
   // something after this screen was first drawn.
@@ -662,7 +670,7 @@ VIEWS.ticket = function () {
   el('copyMsg').addEventListener('click', async (e) => {
     e.preventDefault();
     const ok = await copyText(bookingMessage());
-    e.target.textContent = ok ? 'Copied — paste it to him ✓' : 'Copy failed, screenshot the ticket';
+    e.target.textContent = ok ? t('copiedPaste') : t('copyFailed');
   });
   el('ics').addEventListener('click', downloadIcs);
   el('cont').addEventListener('click', next);
@@ -671,11 +679,11 @@ VIEWS.ticket = function () {
   const tickCd = () => {
     if (!document.body.contains(cd)) return;
     const ms = start - new Date();
-    if (ms <= 0) { cd.textContent = "it's happening"; return; }
+    if (ms <= 0) { cd.textContent = t('itsHappening'); return; }
     const d = Math.floor(ms / 86400000);
     const h = Math.floor(ms / 3600000) % 24;
     const mn = Math.floor(ms / 60000) % 60;
-    cd.textContent = `${d}d ${h}h ${mn}m`;
+    cd.textContent = `${d}${t('dDay')} ${h}${t('dHour')} ${mn}${t('dMin')}`;
     setTimeout(tickCd, 30000);
   };
   tickCd();
@@ -683,23 +691,23 @@ VIEWS.ticket = function () {
 
 VIEWS.receipt = function () {
   const rows = [
-    ['Attempts to say no', state.noAttempts],
-    ...(state.decoyAttempts ? [['Options that ran away', state.decoyAttempts]] : []),
-    ['Successful escapes', 0],
-    ['Questions answered', 4 + Object.keys(state.answers).length + (state.ride ? 1 : 0)],
-    ['Chance of cancellation', '0%'],
-    ['Booking reference', REF],
+    [t('rNoAttempts'), state.noAttempts],
+    ...(state.decoyAttempts ? [[t('rRanAway'), state.decoyAttempts]] : []),
+    [t('rEscapes'), 0],
+    [t('rAnswered'), 4 + Object.keys(state.answers).length + (state.ride ? 1 : 0)],
+    [t('rCancel'), '0%'],
+    [t('rRef'), REF],
   ];
 
   stageEl().innerHTML = `
-    ${head('Receipt', 'For the record.', 'The system logs everything. Sorry.')}
+    ${head(t('receipt'), esc(t('forTheRecord')), esc(t('receiptSub')))}
     <div class="panel">
       ${rows.map(([k, v]) => `<div class="stat"><span>${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('')}
     </div>
-    <p class="sub">See you ${esc(fmtShort(state.date))} at ${esc(state.time)}. Don't be late — I will be, but don't be.</p>
+    <p class="sub">${esc(t('seeYou', { d: fmtShort(state.date), t: state.time }))}</p>
     <div class="btn-row">
-      <button class="btn ghost" id="againBtn">Back to the ticket</button>
-      <button class="btn ghost" id="restart">Start over</button>
+      <button class="btn ghost" id="againBtn">${esc(t('backToTicket'))}</button>
+      <button class="btn ghost" id="restart">${esc(t('startOver'))}</button>
     </div>`;
 
   el('againBtn').addEventListener('click', back);
@@ -905,21 +913,27 @@ function summaryTitle() {
 /* When she didn't lock in a venue, print something better than the city. */
 function cityFallback() {
   const a = state.answers;
+  // Each entry is [translation key, the English it falls back to].
+  const pick = (map, key, dflt) => (map[key] ? pl(map[key][0], map[key][1]) : dflt);
+
   switch (state.activity) {
-    case 'food':     return a.vibe === 'home' ? 'Home' : cfg.city;
-    case 'italy':    return { rome: 'Rome', florence: 'Florence', venice: 'Venice',
-                              amalfi: 'Amalfi Coast', milan: 'Milan' }[a.city] || 'Italy';
-    case 'cook':     return a.who === 'order' ? 'The sofa' : 'The kitchen';
-    case 'surprise': return "You'll find out";
-    case 'nothing':  return { mine: 'My place', yours: 'Your place',
-                              beach: 'The beach', bed: 'Bed' }[a.where] || 'Somewhere soft';
-    case 'movie':    return { fort: 'The blanket fort', roof: 'The roof',
-                              car: 'The car' }[a.where] || cfg.city;
-    case 'trip':     return { north: 'North', desert: 'The desert',
-                              coast: 'Up the coast', jlm: 'Jerusalem' }[a.direction] || cfg.city;
-    case 'moto':     return { north: 'The Galilee', carmel: 'The Carmel',
-                              jlm: 'The Judean hills', desert: 'The Dead Sea road',
-                              coast: 'Up the coast' }[a.where] || 'The open road';
+    case 'food':     return a.vibe === 'home' ? pl('home', 'Home') : cfg.city;
+    case 'italy':    return pick({ rome: ['rome', 'Rome'], florence: ['florence', 'Florence'],
+                                   venice: ['venice', 'Venice'], amalfi: ['amalfi', 'Amalfi Coast'],
+                                   milan: ['milan', 'Milan'] }, a.city, pl('italy', 'Italy'));
+    case 'cook':     return a.who === 'order' ? pl('sofa', 'The sofa') : pl('kitchen', 'The kitchen');
+    case 'surprise': return pl('findOut', "You'll find out");
+    case 'nothing':  return pick({ mine: ['mine', 'My place'], yours: ['yours', 'Your place'],
+                                   beach: ['beach', 'The beach'], bed: ['bed', 'Bed'] },
+                                 a.where, pl('soft', 'Somewhere soft'));
+    case 'movie':    return pick({ fort: ['fort', 'The blanket fort'], roof: ['roof', 'The roof'],
+                                   car: ['car', 'The car'] }, a.where, cfg.city);
+    case 'trip':     return pick({ north: ['north', 'North'], desert: ['desert', 'The desert'],
+                                   coast: ['coast', 'Up the coast'], jlm: ['jlm', 'Jerusalem'] },
+                                 a.direction, cfg.city);
+    case 'moto':     return pick({ north: ['galilee', 'The Galilee'], carmel: ['carmel', 'The Carmel'],
+                                   jlm: ['judean', 'The Judean hills'], desert: ['deadsea', 'The Dead Sea road'],
+                                   coast: ['coast', 'Up the coast'] }, a.where, pl('openroad', 'The open road'));
     default:         return cfg.city;
   }
 }
@@ -935,23 +949,23 @@ function eventTimes() {
 }
 
 function fmtLong(d) {
-  return d ? d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+  return d ? d.toLocaleDateString(LOCALE[LANG], { weekday: 'long', day: 'numeric', month: 'long' }) : '';
 }
 
 function fmtShort(d) {
-  return d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+  return d ? d.toLocaleDateString(LOCALE[LANG], { weekday: 'short', day: 'numeric', month: 'short' }) : '';
 }
 
-function eventTitle() { return `Date with ${cfg.from} 🌹`; }
+function eventTitle() { return t('evTitle', { from: cfg.from }); }
 
 function eventDetails() {
   return [
     summaryTitle(),
-    state.spot ? `Where: ${state.spot}` : `Where: ${cityFallback()}`,
-    `Dress code: ${dressLabel()}`,
-    rideLabel() ? `Pickup: ${rideLabel()}` : '',
+    t('evWhere', { x: state.spot || cityFallback() }),
+    t('evDress', { x: dressLabel() }),
+    rideLabel() ? t('evPickup', { x: rideLabel() }) : '',
     cfg.note || '',
-    `Booking ref ${REF}. No refunds.`,
+    t('evRef', { r: REF }),
   ].filter(Boolean).join('\n');
 }
 
@@ -980,7 +994,7 @@ function downloadIcs() {
     'BEGIN:VALARM',
     'TRIGGER:-PT2H',
     'ACTION:DISPLAY',
-    `DESCRIPTION:${escIcs('Date with ' + cfg.from + ' in 2 hours')}`,
+    `DESCRIPTION:${escIcs(t('evAlarm', { from: cfg.from }))}`,
     'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -1012,17 +1026,17 @@ function gcalLink() {
 /* null drops the line, '' is a deliberate blank one. */
 function bookingMessage() {
   return [
-    `✅ ${cfg.to} said yes.`,
+    t('waSaidYes', { to: cfg.to }),
     '',
-    `📅 ${fmtLong(state.date)} at ${state.time}`,
+    t('waWhen', { d: fmtLong(state.date), t: state.time }),
     `🎯 ${summaryTitle()}`,
     `📍 ${state.spot || cityFallback()}`,
     `👗 ${dressLabel()}`,
-    rideLabel() ? `🏍️ Pick her up: ${rideLabel()}` : null,
+    rideLabel() ? t('waPickHerUp', { x: rideLabel() }) : null,
     state.contact.phone ? `📱 ${state.contact.phone}` : null,
     state.contact.email ? `✉️ ${state.contact.email}` : null,
     '',
-    `She tried to press "no" ${state.noAttempts} times. Ref ${REF}.`,
+    t('waTried', { n: state.noAttempts, r: REF }),
   ].filter((l) => l !== null).join('\n');
 }
 
@@ -1134,5 +1148,6 @@ function burst(ox, oy, count) {
 
 /* ---------------- boot ---------------- */
 
-el('refOut').textContent = 'REF ' + REF;
+el('refOut').textContent = t('ref', { r: REF });
+el('brandOut').textContent = t('resSystem');
 render();

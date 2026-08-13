@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#120410">
+  <meta name="theme-color" content="#1e0b33">
   <title>Set up your invitation</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Heebo:wght@300;400;500;700&display=swap">
 
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -33,6 +33,20 @@
       </div>
 
       <div class="setup-section" style="border:none;margin-top:0;padding-top:0">
+        <h3>Her language <span class="badge req">Needed</span></h3>
+        <p class="instruction">
+          Which language <b>she</b> reads the invitation in. Hebrew flips the
+          whole thing right to left and translates every question, the ticket,
+          the taunts and the message that gets sent to you.
+          <b>This setup page stays in English either way.</b>
+        </p>
+        <div class="toggle-row" id="langs">
+          <button class="toggle on" data-lang="en">🇬🇧 English</button>
+          <button class="toggle" data-lang="he">🇮🇱 עברית</button>
+        </div>
+      </div>
+
+      <div class="setup-section">
         <h3>The basics <span class="badge req">Needed</span></h3>
         <div class="field">
           <label>Your name</label>
@@ -172,7 +186,7 @@
         <button class="btn primary" id="copy">Copy link</button>
         <div class="btn-row">
           <a class="btn ghost" id="preview" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Preview it</a>
-          <a class="btn ghost" id="wa" style="text-decoration:none;text-align:center" target="_blank" rel="noopener">Send on WhatsApp</a>
+          <button class="btn ghost" id="wa">Send it to her</button>
         </div>
         <p class="tiny" style="margin-top:16px">
           Open the preview on your phone before you send it. The "no" button
@@ -184,6 +198,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
     const el = (id) => document.getElementById(id);
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -197,10 +212,31 @@
     const blocked = new Set();   // weekdays he can't do
     const faces = { faceMe: '', faceHer: '' };
 
-    el('acts').innerHTML = ACTIVITIES.map((a) =>
-      `<button class="toggle on" data-id="${a.id}">${a.emoji} ${a.label}</button>`).join('');
+    let lang = 'en';
+
+    /* The chips show exactly the words she will see, so switching to
+       Hebrew here re-labels them rather than leaving him guessing. */
+    function drawActs() {
+      el('acts').innerHTML = ACTIVITIES.map((a) =>
+        `<button class="toggle" data-id="${a.id}" ${lang === 'he' ? 'dir="rtl"' : ''}>${a.emoji} ${a.label}</button>`).join('');
+      paintActs();
+    }
+
     el('days').innerHTML = DAY_NAMES.map((d, i) =>
       `<button class="toggle" data-day="${i}">${d}</button>`).join('');
+
+    el('langs').addEventListener('click', (e) => {
+      const b = e.target.closest('.toggle');
+      if (!b) return;
+      lang = b.dataset.lang;
+      el('langs').querySelectorAll('.toggle').forEach((x) =>
+        x.classList.toggle('on', x.dataset.lang === lang));
+      applyLang(lang);
+      reseedRides();
+      drawActs();
+      drawRides();
+      build();
+    });
 
     function paintActs() {
       el('acts').querySelectorAll('.toggle').forEach((b) => {
@@ -393,21 +429,40 @@
        costs roughly 1.8k characters of URL. */
     let rides = DEFAULT_RIDES.map((r) => ({ ...r }));
     let rideSeq = rides.length;
+    let ridesTouched = false;   // once he edits one, stop re-seeding on language change
 
-    const RIDE_W = 480, RIDE_H = 300, RIDE_MAX = 20000;   // max chars of data URI
+    /* Switching language re-labels the untouched default rides, but never
+       overwrites anything he typed himself. */
+    function reseedRides() {
+      if (ridesTouched) return;
+      rides = DEFAULT_RIDES.map((r) => ({ ...r }));
+      rideSeq = rides.length;
+    }
+
+    /* WhatsApp cuts a message at 65,536 characters, and the link IS the
+       message, so a photo that will not compress has to be made physically
+       smaller rather than merely uglier. Quality first, then dimensions,
+       until it actually fits. */
+    const RIDE_W = 460, RIDE_MAX = 9000;   // max chars of data URI, ~6.5 KB
 
     function shrinkRide(src, cb) {
       const img = new Image();
       img.onload = () => {
-        const k = Math.min(1, RIDE_W / img.naturalWidth, RIDE_H / img.naturalHeight);
-        const w = Math.max(1, Math.round(img.naturalWidth * k));
-        const h = Math.max(1, Math.round(img.naturalHeight * k));
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        let q = 0.72;
-        let out = c.toDataURL('image/jpeg', q);
-        while (out.length > RIDE_MAX && q > 0.32) { q -= 0.08; out = c.toDataURL('image/jpeg', q); }
+        let wide = RIDE_W;
+        let out = null;
+        for (let pass = 0; pass < 6; pass++) {
+          const k = Math.min(1, wide / img.naturalWidth, (wide * 0.7) / img.naturalHeight);
+          const w = Math.max(1, Math.round(img.naturalWidth * k));
+          const h = Math.max(1, Math.round(img.naturalHeight * k));
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          let q = 0.70;
+          out = c.toDataURL('image/jpeg', q);
+          while (out.length > RIDE_MAX && q > 0.34) { q -= 0.07; out = c.toDataURL('image/jpeg', q); }
+          if (out.length <= RIDE_MAX) break;
+          wide = Math.round(wide * 0.78);
+        }
         cb(out);
       };
       img.onerror = () => cb(null);
@@ -420,7 +475,7 @@
       el('rides').innerHTML = rides.map((r, i) => {
         const attached = r.img && !isUrl(r.img);
         return `
-        <div class="ride-row" data-i="${i}">
+        <div class="ride-row" data-i="${i}" ${lang === 'he' ? 'dir="rtl"' : ''}>
           <label class="ride-shot">
             ${r.img ? `<img src="${r.img.replace(/"/g, '&quot;')}" alt="">` : (r.emoji || '🚗')}
             <span class="tag">${r.img ? 'Change' : 'Add photo'}</span>
@@ -447,7 +502,7 @@
 
     el('rides').addEventListener('input', (e) => {
       const t = e.target;
-      if (t.dataset.k) { rides[+t.dataset.i][t.dataset.k] = t.value; build(); }
+      if (t.dataset.k) { ridesTouched = true; rides[+t.dataset.i][t.dataset.k] = t.value; build(); }
     });
 
     el('rides').addEventListener('click', (e) => {
@@ -455,6 +510,7 @@
       if (!b) return;
       e.preventDefault();
       const i = +b.dataset.i;
+      ridesTouched = true;
       if (b.dataset.act === 'remove') rides.splice(i, 1);
       if (b.dataset.act === 'unphoto') rides[i].img = '';
       drawRides();
@@ -468,17 +524,19 @@
       const i = +inp.dataset.file;
       const reader = new FileReader();
       reader.onload = () => shrinkRide(reader.result, (out) => {
-        if (out) { rides[i].img = out; drawRides(); }
+        if (out) { ridesTouched = true; rides[i].img = out; drawRides(); }
       });
       reader.readAsDataURL(f);
     });
 
     el('addRide').addEventListener('click', () => {
+      ridesTouched = true;
       rides.push({ id: 'r' + (++rideSeq), emoji: '🚗', label: '', note: '', img: '' });
       drawRides();
     });
 
     el('resetRides').addEventListener('click', () => {
+      ridesTouched = false;
       rides = DEFAULT_RIDES.map((r) => ({ ...r }));
       rideSeq = rides.length;
       drawRides();
@@ -491,6 +549,7 @@
 
       const cfg = {
         ...DEFAULT_CONFIG,
+        lang,
         from: el('from').value.trim() || 'Eitan',
         to: el('to').value.trim() || 'Or',
         phone,
@@ -528,37 +587,62 @@
       el('link').textContent = url.length > 240 ? url.slice(0, 240) + '…' : url;
       el('preview').href = url;
 
-      // Long links still work, but they get unwieldy to send around.
-      // Every attached photo costs roughly 1.8k characters per kilobyte.
-      const pct = Math.min(100, (url.length / 60000) * 100);
+      /* WhatsApp truncates a message at 65,536 characters. The link is the
+         message, so past that it does not arrive short — it arrives broken,
+         which is worse. Say so plainly rather than letting him find out. */
+      const LIMIT = 65536;
+      const pct = Math.min(100, (url.length / LIMIT) * 100);
       el('meterBar').style.transform = `scaleX(${pct / 100})`;
       el('meterNote').textContent = url.length < 8000
         ? `Link length: ${url.length} characters. Fine.`
-        : url.length < 40000
+        : url.length < 30000
           ? `Link length: ${url.length} characters. Fine — photos make it long.`
-          : `Link length: ${url.length} characters. Getting long. Use Copy link rather than the WhatsApp button, or swap a ride photo for an image link.`;
-      el('meterNote').className = url.length < 40000 ? 'tiny' : 'tiny warn';
-
-      const msg = `${cfg.to} — you have one unopened invitation 💌\n${url}`;
-      el('wa').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+          : url.length < LIMIT
+            ? `Link length: ${url.length} characters. Long, but still sendable. Dropping a ride photo for an image link would help.`
+            : `Link length: ${url.length} characters. TOO LONG — WhatsApp cuts messages at ${LIMIT}, so this one arrives broken. Swap a ride photo for an image link, or remove a photo.`;
+      el('meterNote').className = url.length < 30000 ? 'tiny' : 'tiny warn';
       return url;
     }
 
     ['from', 'to', 'phone', 'cc', 'city', 'note', 'horizon']
       .forEach((id) => el(id).addEventListener('input', build));
 
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall through */ }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      ta.remove();
+      return ok;
+    }
+
     el('copy').addEventListener('click', async () => {
       const url = build();
-      try {
-        await navigator.clipboard.writeText(url);
-        el('copy').textContent = 'Copied ✓';
-      } catch (e) {
-        el('copy').textContent = 'Copy failed — use Preview, then share that page';
-      }
+      const ok = await copyText(url);
+      el('copy').textContent = ok ? 'Copied ✓' : 'Copy failed — use Preview, then share that page';
       setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2400);
     });
 
-    paintActs();
+    /* Never a wa.me?text=<the whole link>: with photos attached that URL
+       runs past a hundred thousand characters and simply does nothing.
+       The share sheet takes long text natively; clipboard is the fallback. */
+    el('wa').addEventListener('click', async () => {
+      const url = build();
+      const msg = `${el('to').value.trim() || 'You'} — you have one unopened invitation 💌\n${url}`;
+      if (navigator.share) {
+        try { await navigator.share({ text: msg }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      const ok = await copyText(msg);
+      el('wa').textContent = ok ? 'Copied — paste it to her ✓' : 'Copy failed — use Copy link above';
+      setTimeout(() => { el('wa').textContent = 'Send it to her'; }, 2600);
+    });
+
+    drawActs();    // calls paintActs()
     drawRides();   // calls build()
   </script>
 </body>

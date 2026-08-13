@@ -4,6 +4,7 @@
    ============================================================ */
 
 const DEFAULT_CONFIG = {
+  lang: 'en',                // 'en' or 'he' — the language she reads it in
   from: 'Eitan',
   to: 'Or',
   phone: '',                 // WhatsApp number that gets the answers, digits only
@@ -92,6 +93,7 @@ function readConfig() {
   cfg.favorites = cfg.favorites
     .map((id) => (id === 'bikes' ? 'moto' : id))
     .filter((id) => cfg.activities.includes(id));
+  if (cfg.lang !== 'he') cfg.lang = 'en';
   if (!Array.isArray(cfg.rides)) cfg.rides = DEFAULT_CONFIG.rides;
   cfg.rides = cfg.rides
     .filter((r) => r && r.label)
