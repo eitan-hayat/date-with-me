@@ -11,10 +11,39 @@ const DEFAULT_CONFIG = {
   faceMe: '',                // circular face crops, made in setup, ~168px
   faceHer: '',
   activities: ACTIVITIES.map((a) => a.id),
+  rides: DEFAULT_RIDES,      // what's parked outside, with a photo of each
   blockedDays: [],           // weekday indices 0=Sun … 6=Sat that he can't do
   horizon: 60,               // how far ahead the calendar goes, in days
   note: '',                  // optional personal line on the ticket
+  cc: '972',                 // country code for a number typed as 05x-xxx-xxxx
 };
+
+/* ------------------------------------------------------------
+   wa.me will only accept a full international number in digits.
+   "050-123-4567" is not one: it opens WhatsApp and then says the
+   number doesn't exist, which is exactly the failure that looks
+   like "the app didn't send anything". Fix it here, once, and use
+   it from both the setup page and the invitation.
+   ------------------------------------------------------------ */
+function waNumber(raw, cc) {
+  let s = String(raw || '').replace(/[^\d+]/g, '');
+  if (!s) return '';
+  const code = String(cc || '972').replace(/\D/g, '') || '972';
+
+  if (s.startsWith('+')) s = s.slice(1);
+  else if (s.startsWith('00')) s = s.slice(2);
+  else if (s.startsWith('0')) s = code + s.replace(/^0+/, '');
+  else if (!s.startsWith(code) && s.length <= 10) s = code + s;
+
+  s = s.replace(/\D/g, '');
+  // Anything outside E.164's range is a typo, not a number.
+  return s.length >= 8 && s.length <= 15 ? s : '';
+}
+
+/* Pretty version of the above, for showing him what will be dialled. */
+function waPretty(digits) {
+  return digits ? '+' + digits : '';
+}
 
 function b64urlEncode(str) {
   const bytes = new TextEncoder().encode(str);
@@ -53,6 +82,11 @@ function readConfig() {
   if (!Array.isArray(cfg.activities) || !cfg.activities.length) {
     cfg.activities = DEFAULT_CONFIG.activities;
   }
+  if (!Array.isArray(cfg.rides)) cfg.rides = DEFAULT_CONFIG.rides;
+  cfg.rides = cfg.rides
+    .filter((r) => r && r.label)
+    .map((r, i) => ({ id: r.id || 'r' + (i + 1), emoji: r.emoji || '🚗',
+                      label: r.label, note: r.note || '', img: r.img || '' }));
   return cfg;
 }
 

@@ -438,10 +438,15 @@ function dateScene(o) {
       <stop offset="0%" stop-color="${p.glow}"/>
       <stop offset="100%" stop-color="${p.glow.replace(/[\d.]+\)$/, '0)')}"/>
     </radialGradient>
+    <linearGradient id="f${uid}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#dc21b8"/>
+      <stop offset="100%" stop-color="#4ac0fc"/>
+    </linearGradient>
     <clipPath id="c${uid}"><rect x="0" y="0" width="${W}" height="${PIC}"/></clipPath>
   </defs>
 
-  <rect width="${W}" height="460" fill="#fdf8f3"/>
+  <rect width="${W}" height="460" fill="#1b0620"/>
+  <rect x="0" y="${PIC}" width="${W}" height="${460 - PIC}" fill="url(#f${uid})" opacity="0.22"/>
   <g clip-path="url(#c${uid})">
     <rect width="${W}" height="${PIC}" fill="url(#s${uid})"/>
     ${stars}
@@ -452,10 +457,10 @@ function dateScene(o) {
     ${prop}
   </g>
 
-  <text x="${W / 2}" y="428" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
-        font-size="26" fill="#2f2a26">${sEsc(o.from)} &amp; ${sEsc(o.to)}</text>
+  <text x="${W / 2}" y="428" text-anchor="middle" font-family="Poppins, Helvetica, Arial, sans-serif"
+        font-weight="500" font-size="26" fill="#f7eefa">${sEsc(o.from)} &amp; ${sEsc(o.to)}</text>
   <text x="${W / 2}" y="449" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-        font-size="11.5" letter-spacing="1.7" fill="#8c7f74">${sEsc(line2.toUpperCase())}</text>
+        font-size="11.5" letter-spacing="1.7" fill="#a992b3">${sEsc(line2.toUpperCase())}</text>
 </svg>`;
 }
 

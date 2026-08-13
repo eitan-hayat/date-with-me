@@ -4,6 +4,11 @@ A one-question-at-a-time date invitation you send as a link. The "no" button
 runs away, so there is only one possible outcome. It ends with a printed ticket
 and a real calendar invite.
 
+Midnight plum, magenta `#DC21B8` → cyan `#4AC0FC` gradients, Poppins. Every
+accent in the app is one of those two colours or the gradient between them;
+if you're adding something, take it from the tokens at the top of
+`css/style.css` rather than picking a new colour.
+
 ## How to use it
 
 1. Open **`/setup.html`** — this page is for you, not for her.
@@ -28,6 +33,7 @@ their own configuration and nothing is stored anywhere.
 | Dress code | Casual, nice, fancy, or pyjamas. |
 | Calendar | Your blocked days are greyed out. |
 | Time | If she asked for sunset or golden hour anywhere, this question rebuilds itself around the real sunset for the day and city she picked, offering the half hours either side of it. Otherwise it's the standard slots. |
+| The pickup | "How do you want me to pick you up?" — photo cards of what is actually parked outside. You set the list in setup. |
 | Fine print | Joke terms. The last one is pre-checked and cannot be unchecked. |
 | Confirming | "Checking his availability… He's free. He was always free." |
 | **It's official** | The big one. Sustained confetti, the booking spelled out line by line, both Instagram handles, and a drawn picture of the two of you on the date she just planned, which she can save to her phone. |
@@ -40,8 +46,34 @@ she types becomes the answer and prints on the ticket, so she is never boxed in
 by the options you chose for her.
 
 Pressing **Send it to Eitan** opens WhatsApp with the whole booking already
-written out — date, plan, venue, dress code, her contact details, and how many
-times she tried to escape.
+written out — date, plan, venue, dress code, the pickup, her contact details,
+and how many times she tried to escape.
+
+It is a real link rather than a scripted `window.open`, because popup blockers
+and in-app browsers swallow the scripted version and then nothing happens at
+all. Underneath it there's a **Copy the message** fallback for the cases where
+WhatsApp itself isn't installed.
+
+The number is normalised before it goes into the link. `wa.me` only accepts a
+full international number in digits: give it `052-123-4567` and WhatsApp opens,
+then says that number doesn't exist, which looks exactly like the app failing to
+send. `waNumber()` in `js/config.js` turns `052-123-4567`, `+972 52 123 4567`,
+`00972…` and `521234567` all into `972521234567`, and setup tells you which
+number it is going to dial while you type it.
+
+## The pickup
+
+Second to last question, and the only one where she is choosing between real
+objects, so it's the only one with photographs. Setup ships with three rows —
+Red Ducati Monster 2026, Ducati Streetfighter V4 S, Ford Mustang EcoBoost —
+and you tap each tile to attach the actual photo of that bike or car. Rename
+them, add more, remove any of them; remove all of them and the question
+disappears from her flow entirely.
+
+Photos are resized to 480px wide in the browser and re-encoded down the quality
+scale until each one fits in 20k characters, because everything in this app
+travels inside the URL. If a link gets unwieldy, each row also takes a plain
+image URL instead, which costs about sixty characters.
 
 ## Files
 
@@ -49,7 +81,7 @@ times she tried to escape.
 index.html      the invitation
 setup.html      your config page — builds the link
 css/style.css   all styling
-js/data.js      activities, follow-up questions, recommendations
+js/data.js      activities, follow-up questions, rides, recommendations
 js/scene.js     draws the picture: skies, backdrops, the couple
 js/config.js    reads and writes the config packed into the URL
 js/app.js       the flow engine, the calendar, the .ics export, the runaway button

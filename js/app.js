@@ -13,9 +13,12 @@ if (!/[#&]c=/.test(location.hash) && !/[?&]demo/.test(location.search)) {
 const cfg = readConfig();
 const OTHER = '__other';
 
+const RIDES = (cfg.rides || []).filter((r) => r && r.label);
+
+/* 'ride' only exists if he actually listed something to pick her up in. */
 const BASE_QUEUE = ['envelope', 'ask', 'celebrate', 'activity', '__flow__', 'recs',
-                    'dress', 'date', 'time', 'terms', 'confirming', 'party',
-                    'contact', 'ticket', 'receipt'];
+                    'dress', 'date', 'time', 'ride', 'terms', 'confirming', 'party',
+                    'contact', 'ticket', 'receipt'].filter((s) => s !== 'ride' || RIDES.length);
 
 const state = {
   stage: 0,
@@ -25,6 +28,7 @@ const state = {
   other: {},         // free text she typed, keyed by question
   spot: null,        // chosen recommendation
   dress: null,
+  ride: null,        // how he turns up
   date: null,        // Date at local midnight
   time: null,
   contact: { phone: '', email: '' },
@@ -121,14 +125,29 @@ function askQuestion(opts) {
     id: OTHER, emoji: '✏️', label: 'Something else', note: opts.otherNote || 'your idea',
   }];
 
-  stageEl().innerHTML = `
-    ${head(eyebrow, title, sub)}
-    <div class="grid ${opts.oneCol ? 'one' : ''}">${tiles.map((o) => `
+  /* Two shapes of tile: the plain one, and — when the question is about
+     things you have to see to choose between — a photo card. "Something
+     else" stays plain either way; there is no photo of an idea. */
+  const tile = (o) => (opts.gallery && o.id !== OTHER ? `
+      <button class="opt shot-card ${selected === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
+        ${o.img
+          ? `<img class="shot" src="${esc(o.img)}" alt="${esc(o.label)}" loading="lazy">`
+          : `<div class="shot ph">${o.emoji || '🚗'}</div>`}
+        <span class="card-body">
+          <span>${esc(o.label)}</span>
+          ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
+        </span>
+      </button>` : `
       <button class="opt ${selected === o.id ? 'selected' : ''}" data-id="${esc(o.id)}">
         ${o.emoji ? `<span class="emoji">${o.emoji}</span>` : ''}
         <span>${esc(o.label)}</span>
         ${o.note ? `<span class="note">${esc(o.note)}</span>` : ''}
-      </button>`).join('')}</div>
+      </button>`);
+
+  stageEl().innerHTML = `
+    ${head(eyebrow, title, sub)}
+    <div class="grid ${opts.oneCol ? 'one' : ''} ${opts.gallery ? 'gallery' : ''}">${
+      tiles.map(tile).join('')}</div>
     <div class="other-box ${isOther ? '' : 'hide'}" id="otherBox">
       <input id="otherInput" type="${inputType}" placeholder="${esc(placeholder)}"
              value="${esc(state.other[key] || '')}" autocomplete="off">
@@ -457,6 +476,22 @@ VIEWS.time = function () {
   });
 };
 
+/* The last real choice: what turns up outside her building. */
+VIEWS.ride = function () {
+  askQuestion({
+    key: 'ride',
+    eyebrow: 'The pickup',
+    title: 'How do you want<br>me to pick you up?',
+    sub: `Everything here is parked and insured. Photos are real, ${esc(cfg.from)} is not exaggerating.`,
+    options: RIDES,
+    selected: state.ride,
+    gallery: true,
+    placeholder: "I'll make my own way there…",
+    otherNote: 'or tell me where to meet you',
+    onPick: (id) => { state.ride = id; next(); },
+  });
+};
+
 VIEWS.terms = function () {
   if (!state.terms.length) state.terms = TERMS.map((t) => !!t.locked);
 
@@ -511,6 +546,7 @@ VIEWS.party = function () {
         <div class="party-line pop pop-3">${esc(fmtLong(state.date))} · ${esc(state.time)}</div>
         <div class="party-line pop pop-4">${esc(summaryTitle())}</div>
         <div class="party-line pop pop-5">${esc(state.spot || cityFallback())}</div>
+        ${rideLabel() ? `<div class="party-line pop pop-5">Pickup · ${esc(rideLabel())}</div>` : ''}
       </div>
       ${sceneCard('pop pop-5')}
       <button class="btn ghost" id="saveScene" style="margin-bottom:20px">Save the picture</button>
@@ -569,6 +605,7 @@ VIEWS.ticket = function () {
           <div class="trow wide"><div class="k">Plan</div><div class="v">${esc(what)}</div></div>
           <div class="trow"><div class="k">Where</div><div class="v">${esc(where)}</div></div>
           <div class="trow"><div class="k">Dress code</div><div class="v">${esc(dressLabel())}</div></div>
+          ${rideLabel() ? `<div class="trow wide"><div class="k">Pickup</div><div class="v">${esc(rideLabel())}</div></div>` : ''}
           ${cfg.note ? `<div class="trow wide"><div class="k">Note</div><div class="v" style="font-weight:400">${esc(cfg.note)}</div></div>` : ''}
         </div>
       </div>
@@ -580,18 +617,32 @@ VIEWS.ticket = function () {
     </div>
 
     ${sceneCard()}
-    <button class="btn primary" id="tellHim">Send it to ${esc(cfg.from)}</button>
+
+    <!-- A real link, not window.open(): popup blockers and in-app browsers
+         swallow the scripted version, and then nothing happens at all. -->
+    <a class="btn primary" id="tellHim" href="${esc(waLink())}" target="_blank" rel="noopener"
+       style="text-decoration:none;text-align:center;display:block">Send it to ${esc(cfg.from)}</a>
     <div class="btn-row">
       <button class="btn ghost" id="ics">Add to calendar</button>
       <a class="btn ghost" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
          href="${esc(gcalLink())}">Google Calendar</a>
+    </div>
+    <div class="tiny" style="text-align:center;margin-top:12px">
+      WhatsApp didn't open? <a href="#" id="copyMsg" style="color:var(--pink-soft)">Copy the message instead</a>
     </div>
     <div class="tiny" style="text-align:center;margin-top:14px">
       Countdown: <span id="cd">—</span>
     </div>
     <button class="btn ghost" id="cont" style="margin-top:18px">One more thing →</button>`;
 
-  el('tellHim').addEventListener('click', notifyHim);
+  // Rebuild the href at click time — she may have gone back and changed
+  // something after this screen was first drawn.
+  el('tellHim').addEventListener('click', (e) => { e.currentTarget.href = waLink(); });
+  el('copyMsg').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const ok = await copyText(bookingMessage());
+    e.target.textContent = ok ? 'Copied — paste it to him ✓' : 'Copy failed, screenshot the ticket';
+  });
   el('ics').addEventListener('click', downloadIcs);
   el('cont').addEventListener('click', next);
 
@@ -613,14 +664,14 @@ VIEWS.receipt = function () {
   const rows = [
     ['Attempts to say no', state.noAttempts],
     ['Successful escapes', 0],
-    ['Questions answered', 4 + Object.keys(state.answers).length],
+    ['Questions answered', 4 + Object.keys(state.answers).length + (state.ride ? 1 : 0)],
     ['Chance of cancellation', '0%'],
     ['Booking reference', REF],
   ];
 
   stageEl().innerHTML = `
     ${head('Receipt', 'For the record.', 'The system logs everything. Sorry.')}
-    <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 16px;margin-bottom:22px;box-shadow:var(--sh-sm)">
+    <div class="panel">
       ${rows.map(([k, v]) => `<div class="stat"><span>${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('')}
     </div>
     <p class="sub">See you ${esc(fmtShort(state.date))} at ${esc(state.time)}. Don't be late — I will be, but don't be.</p>
@@ -633,7 +684,8 @@ VIEWS.receipt = function () {
   el('restart').addEventListener('click', () => {
     Object.assign(state, {
       stage: 0, queue: BASE_QUEUE.slice(), activity: null, answers: {}, other: {},
-      spot: null, dress: null, date: null, time: null, terms: [], noAttempts: 0, calMonth: null,
+      spot: null, dress: null, ride: null, date: null, time: null, terms: [],
+      noAttempts: 0, calMonth: null,
     });
     render();
   });
@@ -760,6 +812,10 @@ function dressLabel() {
   return resolveLabel('dress', DRESS, state.dress) || 'Whatever you want';
 }
 
+function rideLabel() {
+  return state.ride ? resolveLabel('ride', RIDES, state.ride) : '';
+}
+
 function summaryTitle() {
   const base = activityLabel();
   const flow = FLOWS[state.activity] || [];
@@ -815,6 +871,7 @@ function eventDetails() {
     summaryTitle(),
     state.spot ? `Where: ${state.spot}` : `Where: ${cityFallback()}`,
     `Dress code: ${dressLabel()}`,
+    rideLabel() ? `Pickup: ${rideLabel()}` : '',
     cfg.note || '',
     `Booking ref ${REF}. No refunds.`,
   ].filter(Boolean).join('\n');
@@ -874,25 +931,49 @@ function gcalLink() {
 
 /* ---------------- telling him ---------------- */
 
-function notifyHim() {
-  const msg = [
+/* null drops the line, '' is a deliberate blank one. */
+function bookingMessage() {
+  return [
     `✅ ${cfg.to} said yes.`,
-    ``,
+    '',
     `📅 ${fmtLong(state.date)} at ${state.time}`,
     `🎯 ${summaryTitle()}`,
     `📍 ${state.spot || cityFallback()}`,
     `👗 ${dressLabel()}`,
-    state.contact.phone ? `📱 ${state.contact.phone}` : '',
-    state.contact.email ? `✉️ ${state.contact.email}` : '',
-    ``,
+    rideLabel() ? `🏍️ Pick her up: ${rideLabel()}` : null,
+    state.contact.phone ? `📱 ${state.contact.phone}` : null,
+    state.contact.email ? `✉️ ${state.contact.email}` : null,
+    '',
     `She tried to press "no" ${state.noAttempts} times. Ref ${REF}.`,
-  ].filter((l) => l !== undefined).join('\n');
+  ].filter((l) => l !== null).join('\n');
+}
 
-  const digits = (cfg.phone || '').replace(/\D/g, '');
-  const url = digits
-    ? `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`
-    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank', 'noopener');
+/* wa.me needs a full international number in digits. A number typed as
+   05x-xxx-xxxx opens WhatsApp and then says it doesn't exist, which
+   reads as "the app didn't send anything" — hence waNumber(). */
+function waLink() {
+  const digits = waNumber(cfg.phone, cfg.cc);
+  const text = encodeURIComponent(bookingMessage());
+  return digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
+}
+
+/* navigator.clipboard needs a secure context, which a page opened
+   straight off the filesystem is not. Fall back to the old way. */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove();
+    return ok;
+  }
 }
 
 /* ---------------- effects ---------------- */
@@ -930,7 +1011,7 @@ function burst(ox, oy, count) {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const colors = ['#c4705a', '#e8b4a0', '#8fa089', '#d9a441', '#f0cbba'];
+  const colors = ['#dc21b8', '#4ac0fc', '#ff5fd6', '#8f5cff', '#ffffff'];
   for (let i = 0; i < (count || 90); i++) {
     confettiBits.push({
       x: innerWidth * (ox == null ? 0.5 : ox) + (Math.random() - 0.5) * 120,

@@ -714,6 +714,18 @@ const NO_LABELS = [
   'Catch me', 'Nope', 'Try again', 'Almost', 'So close', 'Nah', 'Never',
 ];
 
+/* ---------- the ride ----------
+   What is parked outside. He edits these in setup and adds a photo
+   of each one, so she is choosing between his actual vehicles rather
+   than a generic list. `img` is either a data URI he cropped in setup
+   or a plain image URL he pasted; empty means the card falls back to
+   a gradient tile with the emoji on it. */
+const DEFAULT_RIDES = [
+  { id: 'r1', emoji: '🏍️', label: 'Red Ducati Monster 2026', note: 'loud, red, hard to argue with', img: '' },
+  { id: 'r2', emoji: '🏍️', label: 'Ducati Streetfighter V4 S', note: 'stealth black. hold on properly.', img: '' },
+  { id: 'r3', emoji: '🚗', label: 'Ford Mustang EcoBoost',    note: 'roof, doors, and a working stereo', img: '' },
+];
+
 const DRESS = [
   { id: 'casual', emoji: '👕', label: 'Casual',  note: 'jeans and good intentions' },
   { id: 'nice',   emoji: '👗', label: 'Nice',    note: 'the one I like' },

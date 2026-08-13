@@ -3,9 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#faf5f0">
+  <meta name="theme-color" content="#120410">
   <title>Set up your invitation</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
+
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -49,9 +55,34 @@
         <div class="field">
           <label>Number her answers get sent to</label>
           <input id="phone" type="tel" inputmode="tel" placeholder="+972 5x xxx xxxx">
-          <div class="hint">With the country code. Leave it empty and she picks the
-            chat herself when she taps <em>Send it to you</em>.</div>
+          <div class="hint" id="phoneNote">Type it however you like — <b>052-123-4567</b> or
+            <b>+972 52 123 4567</b> both work. Leave it empty and she picks the chat
+            herself when she taps <em>Send it to you</em>.</div>
         </div>
+        <div class="field">
+          <label>Country code, for numbers typed starting with 0</label>
+          <input id="cc" inputmode="numeric" value="972">
+          <div class="hint">972 is Israel. Only used when the number has no code of its own.</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h3>How you pick her up <span class="badge opt">Optional</span></h3>
+        <p class="instruction">
+          Near the end she gets asked <b>"How do you want me to pick you up?"</b> and
+          chooses from what is actually parked outside. <b>Tap a tile to add the real
+          photo</b> of that bike or car — the exact model, not a stock picture. Rename
+          anything, add more, or remove a row to drop it from her list.
+        </p>
+        <div id="rides"></div>
+        <div class="btn-row">
+          <button class="btn ghost" id="addRide">Add another ride</button>
+          <button class="btn ghost" id="resetRides">Reset the list</button>
+        </div>
+        <p class="tiny" style="margin-top:12px">
+          Photos are shrunk to a wide thumbnail here in the browser before they go
+          into the link. Nothing is uploaded anywhere.
+        </p>
       </div>
 
       <div class="setup-section">
@@ -323,22 +354,135 @@
       fallback: 'Becomes the figure on the right.',
     });
 
+    /* ---------- the rides ----------
+       His actual vehicles, each with a real photo. Photos are shrunk
+       hard before they go anywhere near the link: every kilobyte here
+       costs roughly 1.8k characters of URL. */
+    let rides = DEFAULT_RIDES.map((r) => ({ ...r }));
+    let rideSeq = rides.length;
+
+    const RIDE_W = 480, RIDE_H = 300, RIDE_MAX = 20000;   // max chars of data URI
+
+    function shrinkRide(src, cb) {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, RIDE_W / img.naturalWidth, RIDE_H / img.naturalHeight);
+        const w = Math.max(1, Math.round(img.naturalWidth * k));
+        const h = Math.max(1, Math.round(img.naturalHeight * k));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        let q = 0.72;
+        let out = c.toDataURL('image/jpeg', q);
+        while (out.length > RIDE_MAX && q > 0.32) { q -= 0.08; out = c.toDataURL('image/jpeg', q); }
+        cb(out);
+      };
+      img.onerror = () => cb(null);
+      img.src = src;
+    }
+
+    const isUrl = (s) => /^https?:\/\//i.test(s || '');
+
+    function drawRides() {
+      el('rides').innerHTML = rides.map((r, i) => {
+        const attached = r.img && !isUrl(r.img);
+        return `
+        <div class="ride-row" data-i="${i}">
+          <label class="ride-shot">
+            ${r.img ? `<img src="${r.img.replace(/"/g, '&quot;')}" alt="">` : (r.emoji || '🚗')}
+            <span class="tag">${r.img ? 'Change' : 'Add photo'}</span>
+            <input type="file" accept="image/*" hidden data-file="${i}">
+          </label>
+          <div class="ride-fields">
+            <input class="name" data-k="label" data-i="${i}" placeholder="Red Ducati Monster 2026"
+                   value="${(r.label || '').replace(/"/g, '&quot;')}">
+            <input data-k="note" data-i="${i}" placeholder="one line about it (optional)"
+                   value="${(r.note || '').replace(/"/g, '&quot;')}">
+            ${attached
+              ? `<div class="tiny">Photo attached · ${Math.round(r.img.length / 1400)} KB in the link</div>`
+              : `<input data-k="img" data-i="${i}" placeholder="…or paste an image link (keeps the link short)"
+                        value="${(r.img || '').replace(/"/g, '&quot;')}">`}
+            <div class="ride-acts">
+              ${r.img ? `<button class="btn ghost up-btn" data-act="unphoto" data-i="${i}">Remove photo</button>` : ''}
+              <button class="btn ghost up-btn" data-act="remove" data-i="${i}">Remove ride</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') || `<p class="tiny">No rides on the list — she won't be asked about the pickup at all.</p>`;
+      build();
+    }
+
+    el('rides').addEventListener('input', (e) => {
+      const t = e.target;
+      if (t.dataset.k) { rides[+t.dataset.i][t.dataset.k] = t.value; build(); }
+    });
+
+    el('rides').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-act]');
+      if (!b) return;
+      e.preventDefault();
+      const i = +b.dataset.i;
+      if (b.dataset.act === 'remove') rides.splice(i, 1);
+      if (b.dataset.act === 'unphoto') rides[i].img = '';
+      drawRides();
+    });
+
+    el('rides').addEventListener('change', (e) => {
+      const inp = e.target;
+      if (inp.dataset.file === undefined) return;
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      const i = +inp.dataset.file;
+      const reader = new FileReader();
+      reader.onload = () => shrinkRide(reader.result, (out) => {
+        if (out) { rides[i].img = out; drawRides(); }
+      });
+      reader.readAsDataURL(f);
+    });
+
+    el('addRide').addEventListener('click', () => {
+      rides.push({ id: 'r' + (++rideSeq), emoji: '🚗', label: '', note: '', img: '' });
+      drawRides();
+    });
+
+    el('resetRides').addEventListener('click', () => {
+      rides = DEFAULT_RIDES.map((r) => ({ ...r }));
+      rideSeq = rides.length;
+      drawRides();
+    });
+
     function build() {
       const keep = ACTIVITIES.map((a) => a.id).filter((id) => !dropped.has(id));
+      const cc = (el('cc').value.replace(/\D/g, '') || '972');
+      const phone = el('phone').value.trim();
 
       const cfg = {
         ...DEFAULT_CONFIG,
         from: el('from').value.trim() || 'Eitan',
         to: el('to').value.trim() || 'Or',
-        phone: el('phone').value.trim(),
+        phone,
+        cc,
         city: el('city').value.trim() || 'Tel Aviv',
         faceMe: faces.faceMe,
         faceHer: faces.faceHer,
         note: el('note').value.trim(),
         activities: keep,
+        rides: rides.filter((r) => r.label.trim()).map((r, i) => ({
+          id: r.id || 'r' + (i + 1), emoji: r.emoji || '🚗',
+          label: r.label.trim(), note: (r.note || '').trim(), img: r.img || '',
+        })),
         blockedDays: [...blocked].sort(),
         horizon: Math.min(365, Math.max(7, +el('horizon').value || 60)),
       };
+
+      // Tell him now whether wa.me will actually accept this number,
+      // rather than letting her find out at the very end.
+      const digits = waNumber(phone, cc);
+      el('phoneNote').innerHTML = !phone
+        ? `Empty is fine — she picks the chat herself when she taps <em>Send it to you</em>.`
+        : digits
+          ? `Her answers will open a WhatsApp chat with <b>${waPretty(digits)}</b>.`
+          : `<b>That isn't a full number yet.</b> Try 052-123-4567, or the whole thing with +972.`;
 
       const base = location.href.replace(/setup\.html.*$/, 'index.html');
       const url = base + '#c=' + encodeConfig(cfg);
@@ -352,21 +496,22 @@
       el('preview').href = url;
 
       // Long links still work, but they get unwieldy to send around.
-      const pct = Math.min(100, (url.length / 30000) * 100);
+      // Every attached photo costs roughly 1.8k characters per kilobyte.
+      const pct = Math.min(100, (url.length / 60000) * 100);
       el('meterBar').style.transform = `scaleX(${pct / 100})`;
       el('meterNote').textContent = url.length < 8000
         ? `Link length: ${url.length} characters. Fine.`
-        : url.length < 24000
+        : url.length < 40000
           ? `Link length: ${url.length} characters. Fine — photos make it long.`
-          : `Link length: ${url.length} characters. Long. Use Copy link rather than WhatsApp, or drop one photo.`;
-      el('meterNote').className = url.length < 24000 ? 'tiny' : 'tiny warn';
+          : `Link length: ${url.length} characters. Getting long. Use Copy link rather than the WhatsApp button, or swap a ride photo for an image link.`;
+      el('meterNote').className = url.length < 40000 ? 'tiny' : 'tiny warn';
 
       const msg = `${cfg.to} — you have one unopened invitation 💌\n${url}`;
       el('wa').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
       return url;
     }
 
-    ['from', 'to', 'phone', 'city', 'note', 'horizon']
+    ['from', 'to', 'phone', 'cc', 'city', 'note', 'horizon']
       .forEach((id) => el(id).addEventListener('input', build));
 
     el('copy').addEventListener('click', async () => {
@@ -380,7 +525,7 @@
       setTimeout(() => { el('copy').textContent = 'Copy link'; }, 2400);
     });
 
-    build();
+    drawRides();   // calls build()
   </script>
 </body>
 </html>
